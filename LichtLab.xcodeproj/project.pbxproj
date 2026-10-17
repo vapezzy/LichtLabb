@@ -229,6 +229,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LichtLab/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LichtLab;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "LichtLab verbindet sich per Bluetooth mit deinem OBD-Adapter.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -252,6 +253,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LichtLab/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LichtLab;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "LichtLab verbindet sich per Bluetooth mit deinem OBD-Adapter.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

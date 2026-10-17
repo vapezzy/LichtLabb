@@ -42,6 +42,15 @@ final class CarScene: ObservableObject {
     private var rearStyle: RearLightStyle?
     private(set) var focus: CameraFocus = .overview
 
+    private var current = CarScene.shot(for: .overview)
+    private var goal = CarScene.shot(for: .overview)
+    private var velocity = (yaw: 0.0, elevation: 0.0)
+    private var rate = CarScene.glideRate
+    private var dragging = false
+    private var idle = 0.0
+    private var introRunning = false
+    private var frameDriver: FrameDriver?
+
     private static let onIntensity: CGFloat = 2.4
     private static let offIntensity: CGFloat = 0.03
 
@@ -51,7 +60,8 @@ final class CarScene: ObservableObject {
         buildBody()
         buildFrontLights()
         setRearStyle(.original)
-        move(to: .overview, duration: 0)
+        applyCamera()
+        frameDriver = FrameDriver { [weak self] dt in self?.tick(dt) }
     }
 
     // MARK: - Öffentliche Steuerung
@@ -94,23 +104,42 @@ final class CarScene: ObservableObject {
     }
 
     func focus(_ focus: CameraFocus) {
-        move(to: focus, duration: 1.6)
+        self.focus = focus
+        var shot = Self.shot(for: focus)
+        shot.yaw = Self.nearest(shot.yaw, to: current.yaw)
+        goal = shot
+        velocity = (0, 0)
+        rate = Self.glideRate
+        idle = 0
     }
 
     /// Kinoreife Einfahrt: Kamera fliegt aus der Unschärfe heran, die Lichter erwachen nacheinander.
     func playIntro() {
-        rig.removeAllActions()
-        rig.eulerAngles = v3(0, -1.35, 0)
-        cameraNode.position = v3(15, 0.35, 0)
-        target.position = v3(0, 0.45, 0)
-        camera.focusDistance = 15
+        introRunning = true
+        current = Orbit(yaw: -1.35, elevation: 0.02, distance: 15, targetY: 0.45)
+        goal = current
+        rate = 0.2
+        applyCamera()
         camera.fStop = 1.8
         camera.wantsDepthOfField = true
         override = []
         render()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.move(to: .overview, duration: 3.8)
+            self.focus = .overview
+            self.goal = Self.shot(for: .overview)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 1.2
+            self.camera.fStop = 22
+            SCNTransaction.commit()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.3) {
+            // Tiefenschärfe nur für die Intro-Fahrt, danach scharf und ohne Rauschen.
+            self.camera.wantsDepthOfField = false
+            self.introRunning = false
+            self.rate = Self.glideRate
         }
 
         let eyes: Set<LightSpot> = [.angelEyeLeft, .angelEyeRight]
@@ -133,14 +162,37 @@ final class CarScene: ObservableObject {
         }
     }
 
-    func pan(by dx: Double) {
-        rig.removeAction(forKey: "orbit")
-        let current = Double(rig.presentation.eulerAngles.y)
-        rig.eulerAngles = v3(0, current - dx * 0.006, 0)
+    // MARK: - Gesten
+
+    func beginDrag() {
+        dragging = true
+        velocity = (0, 0)
+        idle = 0
     }
 
-    func endPan() {
-        if focus == .overview { startOrbit(after: 2.5) }
+    /// Finger-Bewegung in Punkten: waagrecht dreht ums Auto, senkrecht neigt die Kamera.
+    func drag(dx: Double, dy: Double) {
+        goal.yaw -= dx * Self.yawPerPoint
+        goal.elevation = Self.clamp(goal.elevation + dy * Self.elevationPerPoint, Self.elevationRange)
+        idle = 0
+    }
+
+    /// Loslassen mit Schwung: Geschwindigkeit in Punkten pro Sekunde.
+    func endDrag(velocityX: Double, velocityY: Double) {
+        dragging = false
+        rate = Self.followRate
+        velocity = (
+            yaw: Self.clamp(-velocityX * Self.yawPerPoint, -5...5),
+            elevation: Self.clamp(velocityY * Self.elevationPerPoint, -3...3)
+        )
+        idle = 0
+    }
+
+    func zoom(by factor: Double) {
+        guard factor > 0 else { return }
+        goal.distance = Self.clamp(goal.distance / factor, Self.distanceRange)
+        rate = Self.followRate
+        idle = 0
     }
 
     func spot(at point: CGPoint, in view: SCNView) -> LightSpot? {
@@ -162,57 +214,76 @@ final class CarScene: ObservableObject {
 
     // MARK: - Kamera
 
-    private struct Shot {
-        let yaw: Double
-        let distance: Double
-        let height: Double
-        let targetY: Double
-        let fStop: CGFloat
+    /// Kameraposition auf einer Kugel um das Auto.
+    private struct Orbit {
+        var yaw: Double
+        var elevation: Double
+        var distance: Double
+        var targetY: Double
     }
 
-    private func shot(for focus: CameraFocus) -> Shot {
+    private static let yawPerPoint = 0.0085
+    private static let elevationPerPoint = 0.005
+    private static let elevationRange = 0.03...1.15
+    private static let distanceRange = 3.4...11.0
+    /// Wie schnell die Kamera ihrem Ziel folgt (pro Sekunde): beim Ziehen, nach dem Loslassen, bei Fahrten.
+    private static let dragRate = 30.0
+    private static let followRate = 14.0
+    private static let glideRate = 2.6
+    private static let orbitSpeed = 0.07
+
+    private static func shot(for focus: CameraFocus) -> Orbit {
         switch focus {
-        case .overview: return Shot(yaw: 0.72, distance: 6.2, height: 2.0, targetY: -0.25, fStop: 8)
-        case .front: return Shot(yaw: 0.42, distance: 5.4, height: 1.2, targetY: 0.0, fStop: 8)
-        case .rear: return Shot(yaw: .pi - 0.42, distance: 5.4, height: 1.3, targetY: 0.1, fStop: 8)
+        case .overview: return Orbit(yaw: 0.72, elevation: 0.35, distance: 6.6, targetY: -0.25)
+        case .front: return Orbit(yaw: 0.42, elevation: 0.22, distance: 5.5, targetY: 0.0)
+        case .rear: return Orbit(yaw: .pi - 0.42, elevation: 0.22, distance: 5.5, targetY: 0.1)
         }
     }
 
-    private func move(to focus: CameraFocus, duration: Double) {
-        self.focus = focus
-        let shot = shot(for: focus)
-        rig.removeAction(forKey: "orbit")
-        let current = Double(rig.presentation.eulerAngles.y)
-        rig.eulerAngles = v3(0, current, 0)
-
-        // Kürzesten Weg um das Auto nehmen.
-        var yaw = shot.yaw
-        while yaw - current > .pi { yaw -= 2 * .pi }
-        while yaw - current < -.pi { yaw += 2 * .pi }
-
-        SCNTransaction.begin()
-        SCNTransaction.animationDuration = duration
-        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(controlPoints: 0.65, 0, 0.25, 1)
-        rig.eulerAngles = v3(0, yaw, 0)
-        cameraNode.position = v3(shot.distance, shot.height, 0)
-        target.position = v3(0, shot.targetY, 0)
-        camera.focusDistance = CGFloat(hypot(shot.distance, shot.height - shot.targetY))
-        camera.fStop = shot.fStop
-        SCNTransaction.completionBlock = { [weak self] in
-            guard let self else { return }
-            // Tiefenschärfe nur für die Intro-Fahrt, danach scharf und ohne Rauschen.
-            self.camera.wantsDepthOfField = false
-            if self.focus == .overview { self.startOrbit() }
-        }
-        SCNTransaction.commit()
+    /// Kürzesten Weg um das Auto nehmen.
+    private static func nearest(_ yaw: Double, to reference: Double) -> Double {
+        var result = yaw
+        while result - reference > .pi { result -= 2 * .pi }
+        while result - reference < -.pi { result += 2 * .pi }
+        return result
     }
 
-    private func startOrbit(after delay: Double = 0) {
-        rig.removeAction(forKey: "orbit")
-        rig.runAction(.sequence([
-            .wait(duration: delay),
-            .repeatForever(.rotateBy(x: 0, y: .pi * 2, z: 0, duration: 90)),
-        ]), forKey: "orbit")
+    private static func clamp(_ value: Double, _ range: ClosedRange<Double>) -> Double {
+        min(max(value, range.lowerBound), range.upperBound)
+    }
+
+    /// Wird pro Bildschirm-Frame aufgerufen (auf ProMotion-Displays 120-mal pro Sekunde).
+    private func tick(_ rawDelta: Double) {
+        let dt = min(max(rawDelta, 0), 1.0 / 30)
+
+        if !dragging {
+            goal.yaw += velocity.yaw * dt
+            goal.elevation = Self.clamp(goal.elevation + velocity.elevation * dt, Self.elevationRange)
+            let decay = exp(-5.0 * dt)
+            velocity.yaw *= decay
+            velocity.elevation *= decay
+            idle += dt
+            // Langsamer Orbit in der Übersicht, sanft anlaufend nach 3 s Ruhe.
+            if focus == .overview && !introRunning && idle > 3 {
+                goal.yaw += Self.orbitSpeed * min(1, (idle - 3) / 2) * dt
+            }
+        }
+        if introRunning { rate = min(1.6, rate + dt * 0.7) }
+
+        let k = 1 - exp(-(dragging ? Self.dragRate : rate) * dt)
+        current.yaw += (goal.yaw - current.yaw) * k
+        current.elevation += (goal.elevation - current.elevation) * k
+        current.distance += (goal.distance - current.distance) * k
+        current.targetY += (goal.targetY - current.targetY) * k
+        applyCamera()
+    }
+
+    private func applyCamera() {
+        rig.eulerAngles = v3(0, current.yaw, 0)
+        cameraNode.position = v3(current.distance * cos(current.elevation),
+                                 current.targetY + current.distance * sin(current.elevation), 0)
+        target.position = v3(0, current.targetY, 0)
+        camera.focusDistance = CGFloat(current.distance)
     }
 
     // MARK: - Licht schalten
@@ -627,5 +698,43 @@ final class CarScene: ObservableObject {
         builder.move(CGPoint(x: 0, y: 1))
         builder.quad(to: CGPoint(x: 1, y: 0), control: CGPoint(x: 1, y: 1))
         return builder.path
+    }
+}
+
+/// Taktgeber pro Bildschirm-Frame – auf ProMotion-Geräten mit bis zu 120 Hz.
+private final class FrameDriver: NSObject {
+    private let onFrame: (Double) -> Void
+    private var last: CFTimeInterval = 0
+    #if os(iOS)
+    private var link: CADisplayLink?
+    #else
+    private var timer: Timer?
+    #endif
+
+    init(onFrame: @escaping (Double) -> Void) {
+        self.onFrame = onFrame
+        super.init()
+        #if os(iOS)
+        let link = CADisplayLink(target: self, selector: #selector(step(_:)))
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 80, maximum: 120, preferred: 120)
+        link.add(to: .main, forMode: .common)
+        self.link = link
+        #else
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 120, repeats: true) { [weak self] _ in
+            self?.advance(to: CACurrentMediaTime())
+        }
+        #endif
+    }
+
+    #if os(iOS)
+    @objc private func step(_ link: CADisplayLink) {
+        advance(to: link.timestamp)
+    }
+    #endif
+
+    private func advance(to now: CFTimeInterval) {
+        let delta = last == 0 ? 1.0 / 120 : now - last
+        last = now
+        onFrame(delta)
     }
 }
