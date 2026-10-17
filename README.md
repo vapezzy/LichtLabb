@@ -1,6 +1,6 @@
 # LichtLab – Lichtsteuerung für BMW F36
 
-iPhone-App (iOS 16+), die sich per Bluetooth LE mit einem **vLinker BM+** verbindet und einzelne Leuchten
+iPhone-App (iOS 16.4+), die sich per Bluetooth LE mit einem **vLinker BM+** verbindet und einzelne Leuchten
 über D-CAN per UDS (InputOutputControl, Dienst 0x2F) schaltet – mit einem 3D-Auto, auf dem du die Leuchten
 direkt antippst.
 
