@@ -7,6 +7,7 @@ struct LichtLabApp: App {
     @StateObject private var session: ELMSession
     @StateObject private var store: PresetStore
     @StateObject private var controller: LightController
+    @StateObject private var scanner: FaultScanner
 
     init() {
         let ble = BLEManager()
@@ -16,6 +17,7 @@ struct LichtLabApp: App {
         _session = StateObject(wrappedValue: session)
         _store = StateObject(wrappedValue: store)
         _controller = StateObject(wrappedValue: LightController(session: session, store: store))
+        _scanner = StateObject(wrappedValue: FaultScanner(session: session))
     }
 
     var body: some Scene {
@@ -25,6 +27,7 @@ struct LichtLabApp: App {
                 .environmentObject(session)
                 .environmentObject(store)
                 .environmentObject(controller)
+                .environmentObject(scanner)
         }
     }
 }

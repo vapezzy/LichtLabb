@@ -22,6 +22,9 @@ direkt antippst.
   Lauflicht-Blinker). Für weitere Nachrüst-Leuchten kannst du eigene Einträge mit Position am Auto anlegen.
 - **Vorschau-Modus:** Ohne Adapter läuft alles nur im 3D-Modell – zum Ausprobieren.
 - **Lackfarben:** Saphirschwarz, Alpinweiß, Estorilblau, Mineralgrau, Melbourne Rot, Glaciersilber.
+- **Fehlerspeicher (Tab „Fehler“):** liest die Fehler aller Steuergeräte aus – nur lesen, nichts wird gelöscht.
+  Schnell-Scan (bekannte F-Serien-Adressen) oder Vollscan (alle Adressen 01–7F), dazu die genormten
+  OBD-II-Codes (P0300 …), Fahrgestellnummer und ein Bericht zum Teilen. Mit „Beispiel ansehen“ auch ohne Auto.
 - **Diagnose-Konsole:** freie AT-/UDS-Befehle, Log teilen.
 
 ## Installation mit TrollStore

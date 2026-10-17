@@ -62,6 +62,8 @@ final class ELMSession: ObservableObject {
     private var timeoutTask: Task<Void, Never>?
     private var lastCommand: Task<[String], Error>?
     private var currentECU: UInt8?
+    /// Tester-Header und Flow-Control für die BMW-Adressierung sind gesetzt (gilt bis OBD-Modus oder Neustart).
+    private var baseAddressed = false
     private var activeSessions: Set<UInt8> = []
     private var keepAlive: Task<Void, Never>?
 
@@ -79,6 +81,7 @@ final class ELMSession: ObservableObject {
     func initialize() async {
         isInitialized = false
         currentECU = nil
+        baseAddressed = false
         activeSessions = []
         do {
             let reset = try await command("ATZ", timeout: 5)
@@ -164,6 +167,7 @@ final class ELMSession: ObservableObject {
         keepAlive = nil
         isInitialized = false
         currentECU = nil
+        baseAddressed = false
         activeSessions = []
         info("Verbindung getrennt")
     }
@@ -174,13 +178,63 @@ final class ELMSession: ObservableObject {
     private func select(ecu: UInt8, quiet: Bool) async throws {
         guard currentECU != ecu else { return }
         let a = String(format: "%02X", ecu)
-        for cmd in ["ATSH6F1", "ATCEA\(a)", "ATCRA6\(a)", "ATFCSH6F1", "ATFCSD\(a)300000", "ATFCSM1"] {
+        var commands = baseAddressed ? [] : ["ATSH6F1", "ATFCSH6F1", "ATFCSM1"]
+        commands += ["ATCEA\(a)", "ATCRA6\(a)", "ATFCSD\(a)300000"]
+        for cmd in commands {
             let lines = try await command(cmd, quiet: quiet)
             guard lines.contains(where: { $0.contains("OK") }) else {
                 throw SessionError.unexpected("\(cmd) → \(lines.joined(separator: " "))")
             }
         }
+        baseAddressed = true
         currentECU = ecu
+    }
+
+    // MARK: - Fehlerspeicher (nur lesen)
+
+    struct StoredDTC {
+        let bytes: [UInt8]
+        let status: UInt8
+    }
+
+    /// Wie lange der Adapter auf eine Antwort wartet, in 4-ms-Schritten (Standard 0x32 = 200 ms).
+    func setResponseTimeout(_ value: UInt8) async throws {
+        try await expectOK(String(format: "ATST%02X", value))
+    }
+
+    /// Liest den Fehlerspeicher eines Steuergeräts: ReadDTCInformation (19 02), Maske aktiv + sporadisch + bestätigt.
+    func readDTCs(ecu: UInt8, quiet: Bool = false) async throws -> [StoredDTC] {
+        let response = try await uds([0x19, 0x02, 0x0D], ecu: ecu, timeout: 4, quiet: quiet)
+        guard response.count >= 3 else { return [] }
+        let records = Array(response.dropFirst(3))
+        return stride(from: 0, to: records.count - 3, by: 4).map { i in
+            StoredDTC(bytes: Array(records[i..<i + 3]), status: records[i + 3])
+        }
+    }
+
+    /// Liest die genormten OBD-II-Fehler (Modus 03 gespeichert, 07 sporadisch) über die Funktionsadresse 7DF.
+    func readOBDCodes() async throws -> (stored: [UInt16], pending: [UInt16]) {
+        guard isInitialized else { throw SessionError.notInitialized }
+        // BMW-Adressierung ausschalten, Standard-OBD-Header setzen
+        for cmd in ["ATCEA", "ATCRA", "ATFCSM0", "ATSH7DF"] { try await expectOK(cmd) }
+        currentECU = nil
+        baseAddressed = false
+
+        func read(_ mode: String, reply: UInt8) async throws -> [UInt16] {
+            let lines = try await command(mode, timeout: 4)
+            if lines.contains(where: { $0.contains("NO DATA") }) { return [] }
+            var codes: [UInt16] = []
+            for message in ISOTP.messages(from: lines) where message.first == reply && message.count >= 2 {
+                // CAN: 43 <Anzahl> <Code-Hi> <Code-Lo> …
+                let payload = Array(message.dropFirst(2))
+                for i in stride(from: 0, to: payload.count - 1, by: 2) {
+                    let code = UInt16(payload[i]) << 8 | UInt16(payload[i + 1])
+                    if code != 0 { codes.append(code) }
+                }
+            }
+            return codes
+        }
+        return (try await read("03", reply: 0x43), try await read("07", reply: 0x47))
     }
 
     /// Sendet eine UDS-Anfrage und liefert die positive Antwort (ab dem Service-Byte).

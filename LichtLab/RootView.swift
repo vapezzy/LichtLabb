@@ -15,6 +15,12 @@ struct RootView: View {
 
     enum Panel { case lights, shows }
 
+    enum AppMode: String, CaseIterable, Identifiable {
+        case lights = "Licht", faults = "Fehler"
+        var id: String { rawValue }
+        var icon: String { self == .lights ? "lightbulb.2" : "stethoscope" }
+    }
+
     @EnvironmentObject private var ble: BLEManager
     @EnvironmentObject private var session: ELMSession
     @EnvironmentObject private var store: PresetStore
@@ -26,6 +32,7 @@ struct RootView: View {
 
     @State private var zone: Zone = .all
     @State private var panel: Panel = .lights
+    @State private var mode: AppMode = .lights
     @State private var introPhase = 0
     @State private var showConnection = false
     @State private var showSettings = false
@@ -41,15 +48,30 @@ struct RootView: View {
 
             vignette
 
+            // Im Fehler-Modus verschwimmt das Auto im Hintergrund.
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Color.black.opacity(0.35))
+                .ignoresSafeArea()
+                .opacity(mode == .faults ? 1 : 0)
+                .allowsHitTesting(mode == .faults)
+
             VStack(spacing: 12) {
                 topBar
-                if let toast = controller.toast {
-                    toastView(toast)
-                        .id(toast.id)
+                modeSwitcher
+                if mode == .lights {
+                    if let toast = controller.toast {
+                        toastView(toast)
+                            .id(toast.id)
+                            .transition(.blurFade)
+                    }
+                    Spacer()
+                    controlPanel
+                        .transition(.blurFade.combined(with: .move(edge: .bottom)))
+                } else {
+                    FaultsView(onConnect: { showConnection = true })
                         .transition(.blurFade)
                 }
-                Spacer()
-                controlPanel
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -159,6 +181,33 @@ struct RootView: View {
         .buttonStyle(.plain)
         .foregroundStyle(.white)
         .padding(.top, 6)
+    }
+
+    private var modeSwitcher: some View {
+        HStack(spacing: 2) {
+            ForEach(AppMode.allCases) { item in
+                Button {
+                    guard mode != item else { return }
+                    Haptics.tap()
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) { mode = item }
+                    if item == .lights { car.focus(zone.focus) } else { car.focus(.overview) }
+                } label: {
+                    Label(item.rawValue, systemImage: item.icon)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .foregroundStyle(mode == item ? Color.black : Color.white.opacity(0.85))
+                        .background {
+                            if mode == item {
+                                Capsule().fill(.white).matchedGeometryEffect(id: "appMode", in: namespace)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .glass(cornerRadius: 22)
     }
 
     private var statusText: String {
