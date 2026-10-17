@@ -30,8 +30,9 @@ direkt antippst.
    – inklusive des versteckten Ordners `.github`.
 2. Im Repository auf **Actions** → „IPA für TrollStore bauen“. Der Build startet bei jedem Push auf `main`,
    oder manuell über *Run workflow*. Dauer ca. 5 Minuten.
-3. Wenn der Lauf grün ist: unten bei *Artifacts* **LichtLab-ipa** herunterladen und entpacken → `LichtLab.ipa`.
-4. Die IPA aufs iPhone bringen (AirDrop, Dateien-App …) → *Teilen* → **TrollStore** → Installieren.
+3. Wenn der Lauf grün ist, liegt die neueste IPA immer hier:
+   https://github.com/vapezzy/LichtLabb/releases/latest/download/LichtLab.ipa
+4. Den Link auf dem iPhone in Safari öffnen → Datei laden → *Teilen* → **TrollStore** → Installieren.
 
 Keine Apple-ID, kein 7-Tage-Ablauf.
 
