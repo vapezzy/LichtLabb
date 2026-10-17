@@ -14,14 +14,16 @@
 		900000000000000000000005 /* ConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* ConsoleView.swift */; };
 		900000000000000000000006 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* ELMSession.swift */; };
 		900000000000000000000007 /* Effects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* Effects.swift */; };
-		900000000000000000000008 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* Hex.swift */; };
-		900000000000000000000009 /* LichtLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* LichtLabApp.swift */; };
-		90000000000000000000000A /* LightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* LightController.swift */; };
-		90000000000000000000000B /* LightPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* LightPreset.swift */; };
-		90000000000000000000000C /* LightShow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* LightShow.swift */; };
-		90000000000000000000000D /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* Platform.swift */; };
-		90000000000000000000000E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* RootView.swift */; };
-		90000000000000000000000F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* SettingsView.swift */; };
+		900000000000000000000008 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* FaultScanner.swift */; };
+		900000000000000000000009 /* FaultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* FaultsView.swift */; };
+		90000000000000000000000A /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* Hex.swift */; };
+		90000000000000000000000B /* LichtLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* LichtLabApp.swift */; };
+		90000000000000000000000C /* LightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* LightController.swift */; };
+		90000000000000000000000D /* LightPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* LightPreset.swift */; };
+		90000000000000000000000E /* LightShow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LightShow.swift */; };
+		90000000000000000000000F /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* Platform.swift */; };
+		900000000000000000000010 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* RootView.swift */; };
+		900000000000000000000011 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,14 +35,16 @@
 		F00000000000000000000005 /* ConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleView.swift; sourceTree = "<group>"; };
 		F00000000000000000000006 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
 		F00000000000000000000007 /* Effects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Effects.swift; sourceTree = "<group>"; };
-		F00000000000000000000008 /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
-		F00000000000000000000009 /* LichtLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichtLabApp.swift; sourceTree = "<group>"; };
-		F0000000000000000000000A /* LightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightController.swift; sourceTree = "<group>"; };
-		F0000000000000000000000B /* LightPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightPreset.swift; sourceTree = "<group>"; };
-		F0000000000000000000000C /* LightShow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightShow.swift; sourceTree = "<group>"; };
-		F0000000000000000000000D /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F0000000000000000000000E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F00000000000000000000008 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
+		F00000000000000000000009 /* FaultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultsView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000A /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
+		F0000000000000000000000B /* LichtLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichtLabApp.swift; sourceTree = "<group>"; };
+		F0000000000000000000000C /* LightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightController.swift; sourceTree = "<group>"; };
+		F0000000000000000000000D /* LightPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightPreset.swift; sourceTree = "<group>"; };
+		F0000000000000000000000E /* LightShow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightShow.swift; sourceTree = "<group>"; };
+		F0000000000000000000000F /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F00000000000000000000010 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,14 +76,16 @@
 				F00000000000000000000005 /* ConsoleView.swift */,
 				F00000000000000000000006 /* ELMSession.swift */,
 				F00000000000000000000007 /* Effects.swift */,
-				F00000000000000000000008 /* Hex.swift */,
-				F00000000000000000000009 /* LichtLabApp.swift */,
-				F0000000000000000000000A /* LightController.swift */,
-				F0000000000000000000000B /* LightPreset.swift */,
-				F0000000000000000000000C /* LightShow.swift */,
-				F0000000000000000000000D /* Platform.swift */,
-				F0000000000000000000000E /* RootView.swift */,
-				F0000000000000000000000F /* SettingsView.swift */,
+				F00000000000000000000008 /* FaultScanner.swift */,
+				F00000000000000000000009 /* FaultsView.swift */,
+				F0000000000000000000000A /* Hex.swift */,
+				F0000000000000000000000B /* LichtLabApp.swift */,
+				F0000000000000000000000C /* LightController.swift */,
+				F0000000000000000000000D /* LightPreset.swift */,
+				F0000000000000000000000E /* LightShow.swift */,
+				F0000000000000000000000F /* Platform.swift */,
+				F00000000000000000000010 /* RootView.swift */,
+				F00000000000000000000011 /* SettingsView.swift */,
 			);
 			path = LichtLab;
 			sourceTree = "<group>";
@@ -167,14 +173,16 @@
 				900000000000000000000005 /* ConsoleView.swift in Sources */,
 				900000000000000000000006 /* ELMSession.swift in Sources */,
 				900000000000000000000007 /* Effects.swift in Sources */,
-				900000000000000000000008 /* Hex.swift in Sources */,
-				900000000000000000000009 /* LichtLabApp.swift in Sources */,
-				90000000000000000000000A /* LightController.swift in Sources */,
-				90000000000000000000000B /* LightPreset.swift in Sources */,
-				90000000000000000000000C /* LightShow.swift in Sources */,
-				90000000000000000000000D /* Platform.swift in Sources */,
-				90000000000000000000000E /* RootView.swift in Sources */,
-				90000000000000000000000F /* SettingsView.swift in Sources */,
+				900000000000000000000008 /* FaultScanner.swift in Sources */,
+				900000000000000000000009 /* FaultsView.swift in Sources */,
+				90000000000000000000000A /* Hex.swift in Sources */,
+				90000000000000000000000B /* LichtLabApp.swift in Sources */,
+				90000000000000000000000C /* LightController.swift in Sources */,
+				90000000000000000000000D /* LightPreset.swift in Sources */,
+				90000000000000000000000E /* LightShow.swift in Sources */,
+				90000000000000000000000F /* Platform.swift in Sources */,
+				900000000000000000000010 /* RootView.swift in Sources */,
+				900000000000000000000011 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
