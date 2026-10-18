@@ -87,12 +87,14 @@ final class LightController: ObservableObject {
 
     // MARK: - Szenen
 
-    func play(_ show: LightShow) {
+    /// Spielt eine Szene ab. `speed` 1 = Originaltempo, 2 = doppelt so schnell;
+    /// `repeats` 0 = endlos, bis die Szene gestoppt wird.
+    func play(_ show: LightShow, speed: Double = 1, repeats: Int = 1) {
         let previous = showTask
         previous?.cancel()
         showTask = Task { [weak self] in
             await previous?.value
-            await self?.run(show)
+            await self?.run(show, speed: max(0.25, speed), repeats: repeats)
         }
     }
 
@@ -103,29 +105,39 @@ final class LightController: ObservableObject {
         showTask = nil
     }
 
-    private func run(_ show: LightShow) async {
+    private func run(_ show: LightShow, speed: Double, repeats: Int) async {
         await allOffQuietly()
         playingShow = show.id
         showProgress = 0
         var active: Set<UUID> = []
-        var elapsed = 0.0
+        let roundDuration = show.duration / speed
+        let rounds = repeats <= 0 ? Int.max : repeats
+        var round = 0
 
-        for step in show.steps {
-            if Task.isCancelled { break }
-            let started = Date()
-            showSpots = step.spots
-            let wanted = Set(store.presets.filter { !Set($0.spots).isDisjoint(with: step.spots) }.map(\.id))
-            if isLive {
-                for preset in store.presets where preset.isConfigured && wanted.contains(preset.id) != active.contains(preset.id) {
-                    try? await session.setLight(preset, on: wanted.contains(preset.id))
+        while round < rounds, !Task.isCancelled {
+            var elapsed = 0.0
+            for original in show.steps {
+                if Task.isCancelled { break }
+                let step = LightShow.Step(spots: original.spots, duration: original.duration / speed)
+                let started = Date()
+                showSpots = step.spots
+                let wanted = Set(store.presets.filter { !Set($0.spots).isDisjoint(with: step.spots) }.map(\.id))
+                if isLive {
+                    for preset in store.presets where preset.isConfigured && wanted.contains(preset.id) != active.contains(preset.id) {
+                        try? await session.setLight(preset, on: wanted.contains(preset.id))
+                    }
                 }
+                active = wanted
+                // Die Zeit für die Befehle von der Schrittdauer abziehen, damit der Takt stimmt.
+                let remaining = step.duration - Date().timeIntervalSince(started)
+                if remaining > 0 { try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
+                elapsed += step.duration
+                // Endlos: Fortschritt pro Durchlauf; sonst über alle Wiederholungen
+                showProgress = repeats <= 0
+                    ? min(1, elapsed / roundDuration)
+                    : min(1, (Double(round) * roundDuration + elapsed) / (roundDuration * Double(rounds)))
             }
-            active = wanted
-            // Die Zeit für die Befehle von der Schrittdauer abziehen, damit der Takt stimmt.
-            let remaining = step.duration - Date().timeIntervalSince(started)
-            if remaining > 0 { try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
-            elapsed += step.duration
-            showProgress = min(1, elapsed / show.duration)
+            round += 1
         }
 
         if isLive {

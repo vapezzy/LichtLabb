@@ -86,6 +86,26 @@ func run() async {
         check(false, "falscher Fehler: \(error.localizedDescription)")
     }
 
+    print("Szenen-Tempo und Wiederholungen (Vorschau)")
+    let controller = LightController(session: ELMSession(transport: ELMSimulator()), store: PresetStore())
+    func timed(_ speed: Double, _ repeats: Int) async -> Double {
+        let started = Date()
+        controller.play(LightShow.pulse, speed: speed, repeats: repeats)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        while controller.playingShow != nil { try? await Task.sleep(nanoseconds: 20_000_000) }
+        return Date().timeIntervalSince(started)
+    }
+    let base = LightShow.pulse.duration
+    let fast = await timed(2, 1)
+    check(abs(fast - base / 2) < 0.4, String(format: "2× Tempo: %.1f s (erwartet %.1f s)", fast, base / 2))
+    let twice = await timed(2, 2)
+    check(abs(twice - base) < 0.5, String(format: "2× Tempo, 2 Wiederholungen: %.1f s (erwartet %.1f s)", twice, base))
+    controller.play(LightShow.pulse, speed: 1, repeats: 0)
+    try? await Task.sleep(nanoseconds: UInt64((base + 1) * 1_000_000_000))
+    check(controller.playingShow == "pulse", "endlos läuft nach einem Durchlauf weiter")
+    await controller.stopShow()
+    check(controller.playingShow == nil, "endlos lässt sich stoppen")
+
     print("Adapter lehnt BMW-Adressierung ab")
     let picky = makeCar()
     picky.rejectExtendedAddressing = true

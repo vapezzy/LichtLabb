@@ -35,6 +35,10 @@ struct RootView: View {
     @StateObject private var car = CarScene()
     @AppStorage("rearLightStyle") private var rearStyleRaw = RearLightStyle.original.rawValue
     @AppStorage("paintColor") private var paintRaw = PaintColor.estorilBlau.rawValue
+    /// Tempo der Szenen: 0,5× (langsam) bis 2× (schnell)
+    @AppStorage("showSpeed") private var showSpeed = 1.0
+    /// Wiederholungen der Szenen, 0 = endlos
+    @AppStorage("showRepeats") private var showRepeats = 1
 
     @State private var zone: Zone = .all
     @State private var panel: Panel = .lights
@@ -386,10 +390,63 @@ struct RootView: View {
     // MARK: - Szenen
 
     private var showsContent: some View {
+        VStack(spacing: 12) {
+            showTiming
+            showCards
+        }
+    }
+
+    /// Tempo-Regler und Wiederholungen – gelten für die nächste gestartete Szene.
+    private var showTiming: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "tortoise.fill").font(.caption).foregroundStyle(.secondary)
+                Slider(value: $showSpeed, in: 0.5...2.0, step: 0.25)
+                    .tint(.cyan)
+                Image(systemName: "hare.fill").font(.caption).foregroundStyle(.secondary)
+                Text(speedLabel(showSpeed))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .frame(width: 38, alignment: .trailing)
+            }
+            HStack(spacing: 6) {
+                Text("Wiederholen")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                ForEach([1, 2, 3, 5, 0], id: \.self) { count in
+                    Button {
+                        Haptics.tap()
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showRepeats = count }
+                    } label: {
+                        Group {
+                            if count == 0 { Image(systemName: "infinity") } else { Text("\(count)×") }
+                        }
+                        .font(.caption.weight(.semibold))
+                        .frame(minWidth: 34)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(showRepeats == count ? Color.black : Color.white.opacity(0.85))
+                        .background(Capsule().fill(showRepeats == count ? Color.white : Color.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    /// 1.0 → "1×", 1.25 → "1,25×", 0.5 → "0,5×"
+    private func speedLabel(_ value: Double) -> String {
+        var text = String(format: "%.2f", value)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text.replacingOccurrences(of: ".", with: ",") + "×"
+    }
+
+    private var showCards: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(LightShow.all(for: rearStyle)) { show in
                     ShowCard(show: show,
+                             duration: showRepeats == 0 ? nil : show.duration / showSpeed * Double(showRepeats),
                              isPlaying: controller.playingShow == show.id,
                              progress: controller.playingShow == show.id ? controller.showProgress : 0)
                         .onTapGesture {
@@ -401,7 +458,7 @@ struct RootView: View {
                                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { zone = .all }
                                     car.focus(.overview)
                                 }
-                                controller.play(show)
+                                controller.play(show, speed: showSpeed, repeats: showRepeats)
                             }
                         }
                 }
@@ -485,6 +542,8 @@ private struct PressStyle: ButtonStyle {
 
 private struct ShowCard: View {
     let show: LightShow
+    /// Gesamtdauer mit Tempo und Wiederholungen; nil = endlos
+    let duration: Double?
     let isPlaying: Bool
     let progress: Double
 
@@ -503,7 +562,7 @@ private struct ShowCard: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
             HStack {
-                Text(String(format: "%.0f s", show.duration))
+                Text(duration.map { String(format: "%.0f s", $0) } ?? "endlos")
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                 Spacer()
