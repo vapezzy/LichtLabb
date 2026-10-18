@@ -22,6 +22,16 @@ struct FaultsView: View {
                 modePicker
                 scanButton
 
+                if case .finished = scanner.phase, let reason = scanner.abortReason {
+                    Label(reason, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glass(cornerRadius: 20)
+                        .transition(.blurFade)
+                }
+
                 if case .finished = scanner.phase {
                     summary.transition(.blurFade)
                     resultsList.transition(.blurFade)

@@ -1,5 +1,14 @@
 import Foundation
 
+/// Verbindung zum Adapter: Bluetooth in der App, ein Simulator in den Tests.
+protocol ELMTransport: AnyObject {
+    var isReady: Bool { get }
+    var onReceive: ((String) -> Void)? { get set }
+    var onReady: (() -> Void)? { get set }
+    var onDisconnect: (() -> Void)? { get set }
+    func send(_ line: String)
+}
+
 /// Spricht ELM327-Befehle mit dem Adapter und UDS mit den BMW-Steuergeräten (D-CAN, 500 kBit/s).
 @MainActor
 final class ELMSession: ObservableObject {
@@ -55,7 +64,7 @@ final class ELMSession: ObservableObject {
     @Published private(set) var isInitialized = false
     @Published private(set) var adapterInfo: String?
 
-    let ble: BLEManager
+    let transport: ELMTransport
 
     private var buffer = ""
     private var pending: CheckedContinuation<String, Error>?
@@ -67,13 +76,17 @@ final class ELMSession: ObservableObject {
     private var activeSessions: Set<UInt8> = []
     private var keepAlive: Task<Void, Never>?
 
-    init(ble: BLEManager) {
-        self.ble = ble
-        ble.onReceive = { [weak self] text in self?.receive(text) }
-        ble.onReady = { [weak self] in
+    convenience init(ble: BLEManager) {
+        self.init(transport: ble)
+    }
+
+    init(transport: ELMTransport) {
+        self.transport = transport
+        transport.onReceive = { [weak self] text in self?.receive(text) }
+        transport.onReady = { [weak self] in
             Task { await self?.initialize() }
         }
-        ble.onDisconnect = { [weak self] in self?.handleDisconnect() }
+        transport.onDisconnect = { [weak self] in self?.handleDisconnect() }
     }
 
     // MARK: - Adapter
@@ -111,13 +124,13 @@ final class ELMSession: ObservableObject {
     }
 
     private func transmit(_ cmd: String, timeout: Double, quiet: Bool) async throws -> [String] {
-        guard ble.status == .ready else { throw SessionError.notConnected }
+        guard transport.isReady else { throw SessionError.notConnected }
         buffer = ""
         if !quiet { append(.sent, cmd) }
 
         let raw: String = try await withCheckedThrowingContinuation { continuation in
             pending = continuation
-            ble.send(cmd)
+            transport.send(cmd)
             timeoutTask = Task { [weak self] in
                 try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                 guard !Task.isCancelled else { return }
@@ -178,8 +191,10 @@ final class ELMSession: ObservableObject {
     private func select(ecu: UInt8, quiet: Bool) async throws {
         guard currentECU != ecu else { return }
         let a = String(format: "%02X", ecu)
-        var commands = baseAddressed ? [] : ["ATSH6F1", "ATFCSH6F1", "ATFCSM1"]
+        // Reihenfolge ist wichtig: ATFCSM1 akzeptiert der ELM327 erst, wenn ATFCSH und ATFCSD gesetzt sind.
+        var commands = baseAddressed ? [] : ["ATSH6F1", "ATFCSH6F1"]
         commands += ["ATCEA\(a)", "ATCRA6\(a)", "ATFCSD\(a)300000"]
+        if !baseAddressed { commands.append("ATFCSM1") }
         for cmd in commands {
             let lines = try await command(cmd, quiet: quiet)
             guard lines.contains(where: { $0.contains("OK") }) else {

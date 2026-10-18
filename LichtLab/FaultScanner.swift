@@ -67,6 +67,8 @@ final class FaultScanner: ObservableObject {
     @Published private(set) var obdCodes: [FaultCode] = []
     @Published private(set) var vin: String?
     @Published private(set) var isDemo = false
+    /// Grund, falls der Scan abgebrochen werden musste
+    @Published private(set) var abortReason: String?
     @Published var mode: Mode = .quick
 
     let session: ELMSession
@@ -117,6 +119,7 @@ final class FaultScanner: ObservableObject {
 
     private func scan() async {
         isDemo = false
+        abortReason = nil
         results = []
         obdCodes = []
         vin = nil
@@ -149,6 +152,13 @@ final class FaultScanner: ObservableObject {
                 // Kein Steuergerät unter dieser Adresse
             } catch ELMSession.SessionError.timeout {
                 // ebenso
+            } catch ELMSession.SessionError.adapter(let message) {
+                // Der Adapter selbst hat etwas abgelehnt – dann scheitern alle weiteren Adressen genauso.
+                abortReason = "Der Adapter hat einen Befehl abgelehnt („\(message)“). Bitte das Protokoll aus Einstellungen → Diagnose-Konsole teilen."
+                break
+            } catch ELMSession.SessionError.unexpected(let message) where message.hasPrefix("AT") {
+                abortReason = "Adapter-Einstellung fehlgeschlagen: \(message)"
+                break
             } catch {
                 results.append(ECUResult(address: address, name: Self.name(for: address), faults: [], error: error.localizedDescription))
             }
@@ -202,6 +212,7 @@ final class FaultScanner: ObservableObject {
             lines.append(DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short))
         }
         if let vin { lines.append("FIN: \(vin)") }
+        if let abortReason { lines.append("Scan abgebrochen: \(abortReason)") }
         lines.append("")
         for result in results {
             lines.append("\(result.name) (\(result.hexAddress))")

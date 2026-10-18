@@ -3,7 +3,7 @@ import CoreBluetooth
 
 /// Bluetooth-LE-Verbindung zum OBD-Adapter (vLinker BM+ o. ä.).
 /// Alle Delegate-Callbacks laufen auf der Main-Queue.
-final class BLEManager: NSObject, ObservableObject {
+final class BLEManager: NSObject, ObservableObject, ELMTransport {
     enum Status: Equatable {
         case bluetoothOff
         case unauthorized
@@ -41,6 +41,8 @@ final class BLEManager: NSObject, ObservableObject {
     @Published private(set) var status: Status = .idle
     @Published private(set) var devices: [Device] = []
     @Published private(set) var connectedName: String?
+
+    var isReady: Bool { status == .ready }
 
     var onReceive: ((String) -> Void)?
     var onReady: (() -> Void)?
