@@ -147,6 +147,62 @@ final class LightController: ObservableObject {
         onPresets = []
     }
 
+    // MARK: - Musik
+
+    private var musicPresets: [LightPreset] = []
+    private var musicDesired = false
+    private var musicOn = false
+    private var musicTask: Task<Void, Never>?
+    private var musicOffTask: Task<Void, Never>?
+
+    /// Schaltet die passenden Leuchten am Auto im Takt. Es wird immer nur der neueste Zustand gesendet,
+    /// damit sich bei schnellen Beats keine Befehle stauen.
+    func startMusicSync(spots: Set<LightSpot>) {
+        stopMusicSync()
+        musicPresets = store.presets.filter { $0.isConfigured && !Set($0.spots).isDisjoint(with: spots) }
+        guard isLive, !musicPresets.isEmpty else { return }
+        musicTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                if self.musicDesired != self.musicOn {
+                    let target = self.musicDesired
+                    for preset in self.musicPresets {
+                        try? await self.session.setLight(preset, on: target)
+                    }
+                    self.musicOn = target
+                } else {
+                    try? await Task.sleep(nanoseconds: 10_000_000)
+                }
+            }
+        }
+    }
+
+    /// Ein Beat: Leuchten kurz an, nach `hold` Sekunden wieder aus.
+    func musicBeat(hold: Double = 0.14) {
+        guard musicTask != nil else { return }
+        musicDesired = true
+        musicOffTask?.cancel()
+        musicOffTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(hold * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.musicDesired = false
+        }
+    }
+
+    func stopMusicSync() {
+        musicTask?.cancel()
+        musicTask = nil
+        musicOffTask?.cancel()
+        musicDesired = false
+        if musicOn {
+            let presets = musicPresets
+            musicOn = false
+            Task { [weak self] in
+                for preset in presets { try? await self?.session.setLight(preset, on: false) }
+            }
+        }
+    }
+
     // MARK: - Hilfen
 
     func showToast(_ text: String, isError: Bool = false) {

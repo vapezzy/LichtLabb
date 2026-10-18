@@ -21,9 +21,11 @@
 		90000000000000000000000C /* LightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* LightController.swift */; };
 		90000000000000000000000D /* LightPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* LightPreset.swift */; };
 		90000000000000000000000E /* LightShow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LightShow.swift */; };
-		90000000000000000000000F /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* Platform.swift */; };
-		900000000000000000000010 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* RootView.swift */; };
-		900000000000000000000011 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* SettingsView.swift */; };
+		90000000000000000000000F /* MusicEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* MusicEngine.swift */; };
+		900000000000000000000010 /* MusicPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* MusicPanel.swift */; };
+		900000000000000000000011 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Platform.swift */; };
+		900000000000000000000012 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* RootView.swift */; };
+		900000000000000000000013 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,9 +44,11 @@
 		F0000000000000000000000C /* LightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightController.swift; sourceTree = "<group>"; };
 		F0000000000000000000000D /* LightPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightPreset.swift; sourceTree = "<group>"; };
 		F0000000000000000000000E /* LightShow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightShow.swift; sourceTree = "<group>"; };
-		F0000000000000000000000F /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F00000000000000000000010 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		F00000000000000000000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000F /* MusicEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicEngine.swift; sourceTree = "<group>"; };
+		F00000000000000000000010 /* MusicPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPanel.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F00000000000000000000012 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F00000000000000000000013 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,9 +87,11 @@
 				F0000000000000000000000C /* LightController.swift */,
 				F0000000000000000000000D /* LightPreset.swift */,
 				F0000000000000000000000E /* LightShow.swift */,
-				F0000000000000000000000F /* Platform.swift */,
-				F00000000000000000000010 /* RootView.swift */,
-				F00000000000000000000011 /* SettingsView.swift */,
+				F0000000000000000000000F /* MusicEngine.swift */,
+				F00000000000000000000010 /* MusicPanel.swift */,
+				F00000000000000000000011 /* Platform.swift */,
+				F00000000000000000000012 /* RootView.swift */,
+				F00000000000000000000013 /* SettingsView.swift */,
 			);
 			path = LichtLab;
 			sourceTree = "<group>";
@@ -180,9 +186,11 @@
 				90000000000000000000000C /* LightController.swift in Sources */,
 				90000000000000000000000D /* LightPreset.swift in Sources */,
 				90000000000000000000000E /* LightShow.swift in Sources */,
-				90000000000000000000000F /* Platform.swift in Sources */,
-				900000000000000000000010 /* RootView.swift in Sources */,
-				900000000000000000000011 /* SettingsView.swift in Sources */,
+				90000000000000000000000F /* MusicEngine.swift in Sources */,
+				900000000000000000000010 /* MusicPanel.swift in Sources */,
+				900000000000000000000011 /* Platform.swift in Sources */,
+				900000000000000000000012 /* RootView.swift in Sources */,
+				900000000000000000000013 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

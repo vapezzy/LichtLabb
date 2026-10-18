@@ -19,8 +19,26 @@ extension AnyTransition {
 }
 
 extension View {
-    /// Mattglas-Fläche mit feiner Lichtkante.
+    /// Dunkle, halbtransparente Fläche mit feiner Lichtkante – ohne Live-Unschärfe, damit die
+    /// 3D-Szene dahinter nicht bei jedem Bild neu weichgezeichnet werden muss.
     func glass(cornerRadius: CGFloat = 24) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return self
+            .background(
+                shape
+                    .fill(LinearGradient(colors: [Color(white: 0.16).opacity(0.78), Color(white: 0.06).opacity(0.82)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
+            )
+            .overlay(
+                shape.strokeBorder(
+                    LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
+                    lineWidth: 1)
+            )
+    }
+
+    /// Echtes Milchglas – nur für das große Bedienpanel.
+    func frostedGlass(cornerRadius: CGFloat = 30) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return self
             .background(.ultraThinMaterial, in: shape)
@@ -29,7 +47,6 @@ extension View {
                     LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
                     lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.45), radius: 24, y: 12)
     }
 }
 

@@ -10,8 +10,8 @@ enum CameraFocus {
 private final class SpotNode {
     let root = SCNNode()
     var materials: [SCNMaterial] = []
-    var lights: [SCNLight] = []
-    var lightIntensity: CGFloat = 300
+    /// Günstiger Lichtschein auf dem Boden (statt einer echten Lichtquelle pro Leuchte)
+    var glow: SCNNode?
     var halo = SCNNode()
     var sequential = false
     var isOn = false
@@ -50,8 +50,13 @@ final class CarScene: ObservableObject {
     private var idle = 0.0
     private var introRunning = false
     private var frameDriver: FrameDriver?
+    private var musicSpots: Set<LightSpot> = []
+    private var musicLevel = 0.0
+    private var musicTarget = 0.0
 
     private static let onIntensity: CGFloat = 2.4
+    private static let glowOpacity: CGFloat = 0.4
+    private static let glowTexture = CarScene.makeGlowTexture()
     private static let offIntensity: CGFloat = 0.03
 
     init() {
@@ -160,6 +165,30 @@ final class CarScene: ObservableObject {
                 self.render()
             }
         }
+    }
+
+    // MARK: - Musik
+
+    /// Diese Leuchten pulsieren mit der Musik statt dem normalen An/Aus zu folgen.
+    func setMusicSpots(_ spots: Set<LightSpot>) {
+        let released = musicSpots.subtracting(spots)
+        musicSpots = spots
+        // Freigegebene Leuchten wieder in ihren normalen Zustand bringen
+        for spot in released {
+            guard let node = self.spots[spot] else { continue }
+            node.isOn = !(override ?? lit).contains(spot)
+        }
+        render()
+    }
+
+    /// Pegel 0…1 vom Musik-Analysator; ein Beat schickt 1.
+    func pushMusicLevel(_ level: Double) {
+        musicTarget = max(musicTarget, min(1, max(0, level)))
+    }
+
+    /// Hält die 3D-Darstellung an, z. B. wenn sie verdeckt ist – spart Akku und Leistung.
+    func setPaused(_ paused: Bool) {
+        frameDriver?.isPaused = paused
     }
 
     // MARK: - Gesten
@@ -276,6 +305,17 @@ final class CarScene: ObservableObject {
         current.distance += (goal.distance - current.distance) * k
         current.targetY += (goal.targetY - current.targetY) * k
         applyCamera()
+
+        if !musicSpots.isEmpty {
+            musicLevel = max(musicTarget, musicLevel * exp(-9 * dt))
+            musicTarget = 0
+            let intensity = Self.offIntensity + CGFloat(musicLevel) * Self.onIntensity
+            for spot in musicSpots {
+                guard let node = spots[spot] else { continue }
+                node.materials.forEach { $0.emission.intensity = intensity }
+                node.glow?.opacity = CGFloat(musicLevel) * Self.glowOpacity
+            }
+        }
     }
 
     private func applyCamera() {
@@ -290,7 +330,7 @@ final class CarScene: ObservableObject {
 
     private func render() {
         let active = override ?? lit
-        for (spot, node) in spots {
+        for (spot, node) in spots where !musicSpots.contains(spot) {
             let on = active.contains(spot)
             guard on != node.isOn else { continue }
             node.isOn = on
@@ -313,7 +353,7 @@ final class CarScene: ObservableObject {
             if !(on && node.sequential) {
                 node.materials.forEach { $0.emission.intensity = on ? Self.onIntensity : Self.offIntensity }
             }
-            node.lights.forEach { $0.intensity = on ? node.lightIntensity : 0 }
+            node.glow?.opacity = on ? Self.glowOpacity : 0
             SCNTransaction.commit()
         }
     }
@@ -335,7 +375,7 @@ final class CarScene: ObservableObject {
         let floor = SCNFloor()
         floor.reflectivity = 0.22
         floor.reflectionFalloffEnd = 2.5
-        floor.reflectionResolutionScaleFactor = 0.6
+        floor.reflectionResolutionScaleFactor = 0.4
         floor.materials = [material(PlatformColor(white: 0.006, alpha: 1), metalness: 0, roughness: 0.7)]
         scene.rootNode.addChildNode(SCNNode(geometry: floor))
 
@@ -347,8 +387,8 @@ final class CarScene: ObservableObject {
         key.color = PlatformColor(red: 0.9, green: 0.94, blue: 1, alpha: 1)
         key.castsShadow = true
         key.shadowRadius = 10
-        key.shadowSampleCount = 8
-        key.shadowMapSize = CGSize(width: 2048, height: 2048)
+        key.shadowSampleCount = 4
+        key.shadowMapSize = CGSize(width: 1024, height: 1024)
         key.shadowColor = PlatformColor(white: 0, alpha: 0.7)
         let keyNode = SCNNode()
         keyNode.light = key
@@ -389,13 +429,9 @@ final class CarScene: ObservableObject {
         camera.bloomIntensity = 1.1
         camera.bloomThreshold = 0.75
         camera.bloomBlurRadius = 14
-        camera.vignettingPower = 0.6
-        camera.vignettingIntensity = 0.9
         camera.wantsDepthOfField = false
-        camera.focalBlurSampleCount = 16
+        camera.focalBlurSampleCount = 8
         camera.motionBlurIntensity = 0
-        camera.colorFringeStrength = 0.6
-        camera.colorFringeIntensity = 0.4
         camera.contrast = 0.12
         camera.saturation = 1.05
         cameraNode.camera = camera
@@ -623,20 +659,22 @@ final class CarScene: ObservableObject {
             return (dx * dx + dy * dy + dz * dz).squareRoot()
         }.max()! + 0.07)
 
-        // Lichtschein auf Boden und Karosserie
-        let glow = SCNLight()
-        glow.type = .omni
-        glow.color = color
-        glow.intensity = 0
-        glow.attenuationStartDistance = 0
-        glow.attenuationEndDistance = 0.9
-        glow.attenuationFalloffExponent = 2
-        let glowNode = SCNNode()
-        glowNode.light = glow
-        glowNode.position = v3(cx / n + (spot.isFront ? 0.25 : -0.25), cy / n, cz / n)
-        node.root.addChildNode(glowNode)
-        node.lights = [glow]
-        node.lightIntensity = spot.tint == .amber || spot.tint == .red ? 35 : 50
+        // Lichtschein auf dem Boden: additiv gemischte Fläche mit weichem Verlauf
+        let glowMaterial = SCNMaterial()
+        glowMaterial.lightingModel = .constant
+        glowMaterial.diffuse.contents = Self.glowTexture
+        glowMaterial.multiply.contents = color
+        glowMaterial.blendMode = .add
+        glowMaterial.writesToDepthBuffer = false
+        let glowSize = CGFloat(spot.isFront ? 1.3 : 1.0)
+        let glow = SCNNode(geometry: SCNPlane(width: glowSize, height: glowSize))
+        glow.geometry?.materials = [glowMaterial]
+        glow.eulerAngles = v3(-.pi / 2, 0, 0)
+        glow.position = v3(cx / n + (spot.isFront ? 0.55 : -0.45), 0.004, cz / n)
+        glow.opacity = 0
+        glow.castsShadow = false
+        node.root.addChildNode(glow)
+        node.glow = glow
 
         // Unsichtbare Trefferfläche zum Antippen
         let hitMaterial = SCNMaterial()
@@ -692,6 +730,24 @@ final class CarScene: ObservableObject {
         return material
     }
 
+    /// Weicher radialer Verlauf (weiß → transparent) für den Bodenschein.
+    private static func makeGlowTexture() -> CGImage? {
+        let size = 128
+        guard let context = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+              let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                        colors: [CGColor(red: 1, green: 1, blue: 1, alpha: 1),
+                                                 CGColor(red: 1, green: 1, blue: 1, alpha: 0.25),
+                                                 CGColor(red: 1, green: 1, blue: 1, alpha: 0)] as CFArray,
+                                        locations: [0, 0.35, 1])
+        else { return nil }
+        let center = CGPoint(x: size / 2, y: size / 2)
+        context.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center,
+                                   endRadius: CGFloat(size) / 2, options: [])
+        return context.makeImage()
+    }
+
     /// Runde statt gerader Fase an den Kanten der extrudierten Formen.
     private static func roundChamfer() -> PlatformBezierPath {
         var builder = PathBuilder()
@@ -705,6 +761,15 @@ final class CarScene: ObservableObject {
 private final class FrameDriver: NSObject {
     private let onFrame: (Double) -> Void
     private var last: CFTimeInterval = 0
+
+    var isPaused = false {
+        didSet {
+            last = 0
+            #if os(iOS)
+            link?.isPaused = isPaused
+            #endif
+        }
+    }
     #if os(iOS)
     private var link: CADisplayLink?
     #else
@@ -733,6 +798,7 @@ private final class FrameDriver: NSObject {
     #endif
 
     private func advance(to now: CFTimeInterval) {
+        guard !isPaused else { return }
         let delta = last == 0 ? 1.0 / 120 : now - last
         last = now
         onFrame(delta)

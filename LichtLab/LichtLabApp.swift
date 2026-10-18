@@ -8,6 +8,7 @@ struct LichtLabApp: App {
     @StateObject private var store: PresetStore
     @StateObject private var controller: LightController
     @StateObject private var scanner: FaultScanner
+    @StateObject private var music = MusicEngine()
 
     init() {
         let ble = BLEManager()
@@ -28,6 +29,7 @@ struct LichtLabApp: App {
                 .environmentObject(store)
                 .environmentObject(controller)
                 .environmentObject(scanner)
+                .environmentObject(music)
         }
     }
 }

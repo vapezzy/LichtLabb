@@ -22,6 +22,9 @@ direkt antippst.
   Lauflicht-Blinker). Für weitere Nachrüst-Leuchten kannst du eigene Einträge mit Position am Auto anlegen.
 - **Vorschau-Modus:** Ohne Adapter läuft alles nur im 3D-Modell – zum Ausprobieren.
 - **Lackfarben:** Saphirschwarz, Alpinweiß, Estorilblau, Mineralgrau, Melbourne Rot, Glaciersilber.
+- **Musik (Tab „Musik“):** lokale Audiodatei wählen (MP3, M4A, WAV …), die Lichter pulsieren auf Bass, Mitten
+  oder Höhen. Empfindlichkeit einstellbar, Lichtgruppen wählbar (Angel Eyes, Rücklichter, Blinker, Nebel, Bremslicht).
+  Im 3D-Modell in Echtzeit; am Auto werden die Leuchten pro Beat kurz geschaltet (Verzögerung ca. 0,1–0,3 s).
 - **Fehlerspeicher (Tab „Fehler“):** liest die Fehler aller Steuergeräte aus – nur lesen, nichts wird gelöscht.
   Schnell-Scan (bekannte F-Serien-Adressen) oder Vollscan (alle Adressen 01–7F), dazu die genormten
   OBD-II-Codes (P0300 …), Fahrgestellnummer und ein Bericht zum Teilen. Mit „Beispiel ansehen“ auch ohne Auto.
@@ -68,6 +71,9 @@ Keine Apple-ID, kein 7-Tage-Ablauf.
 | `BLEManager.swift` | Bluetooth-Verbindung zum Adapter (vLinker: Service 18F0) |
 | `ELMSession.swift` | ELM327-Befehle, BMW-Adressierung, UDS, Sitzungen |
 | `ConsoleView.swift`, `ConnectionView.swift` | Konsole und Adapter-Verbindung |
+| `MusicEngine.swift`, `MusicPanel.swift` | Audio-Wiedergabe, FFT-Analyse, Beat-Erkennung, Musik-Panel |
+| `FaultScanner.swift`, `FaultsView.swift` | Fehlerspeicher auslesen |
+| `tools/generate_project.py` | Erzeugt das Xcode-Projekt neu (nach neuen Swift-Dateien ausführen) |
 | `.github/workflows/build-ipa.yml` | Baut die unsignierte IPA für TrollStore |
 
 ## Sicherheit

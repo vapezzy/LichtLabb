@@ -14,6 +14,7 @@ private typealias PinchRecognizer = NSMagnificationGestureRecognizer
 /// SCNView mit Antippen (Leuchte wählen), Ziehen (drehen und neigen, mit Schwung) und Zwei-Finger-Zoom.
 struct CarSceneView {
     let car: CarScene
+    var paused = false
     var onTapSpot: (LightSpot?) -> Void
 
     final class Coordinator: NSObject {
@@ -67,7 +68,12 @@ struct CarSceneView {
         let view = SCNView(frame: .zero)
         view.scene = car.scene
         view.pointOfView = car.cameraNode
-        view.antialiasingMode = .multisampling4X
+        // 2× statt 3× Auflösung und 2× Kantenglättung: rund dreimal weniger GPU-Arbeit pro Bild,
+        // auf dem dunklen, weichgezeichneten Studio-Look kaum sichtbar.
+        view.antialiasingMode = .multisampling2X
+        #if os(iOS)
+        view.contentScaleFactor = min(2, UIScreen.main.scale)
+        #endif
         view.backgroundColor = .black
         // ProMotion: bis zu 120 Bilder pro Sekunde (braucht CADisableMinimumFrameDurationOnPhone in der Info.plist).
         view.preferredFramesPerSecond = 120
@@ -85,6 +91,14 @@ struct CarSceneView {
         coordinator.view = view
         return view
     }
+
+    private func update(_ view: SCNView, _ coordinator: Coordinator) {
+        coordinator.onTapSpot = onTapSpot
+        if view.isPlaying == paused {
+            view.isPlaying = !paused
+            car.setPaused(paused)
+        }
+    }
 }
 
 #if os(iOS)
@@ -97,11 +111,11 @@ extension CarSceneView.Coordinator: UIGestureRecognizerDelegate {
 
 extension CarSceneView: UIViewRepresentable {
     func makeUIView(context: Context) -> SCNView { makeView(context.coordinator) }
-    func updateUIView(_ view: SCNView, context: Context) { context.coordinator.onTapSpot = onTapSpot }
+    func updateUIView(_ view: SCNView, context: Context) { update(view, context.coordinator) }
 }
 #else
 extension CarSceneView: NSViewRepresentable {
     func makeNSView(context: Context) -> SCNView { makeView(context.coordinator) }
-    func updateNSView(_ view: SCNView, context: Context) { context.coordinator.onTapSpot = onTapSpot }
+    func updateNSView(_ view: SCNView, context: Context) { update(view, context.coordinator) }
 }
 #endif

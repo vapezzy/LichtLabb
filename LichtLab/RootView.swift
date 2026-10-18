@@ -16,9 +16,15 @@ struct RootView: View {
     enum Panel { case lights, shows }
 
     enum AppMode: String, CaseIterable, Identifiable {
-        case lights = "Licht", faults = "Fehler"
+        case lights = "Licht", music = "Musik", faults = "Fehler"
         var id: String { rawValue }
-        var icon: String { self == .lights ? "lightbulb.2" : "stethoscope" }
+        var icon: String {
+            switch self {
+            case .lights: return "lightbulb.2"
+            case .music: return "music.note"
+            case .faults: return "stethoscope"
+            }
+        }
     }
 
     @EnvironmentObject private var ble: BLEManager
@@ -43,7 +49,8 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            CarSceneView(car: car) { spot in handleTap(spot) }
+            // Im Fehler-Modus ist das Auto verdeckt – dann nicht weiter rendern.
+            CarSceneView(car: car, paused: mode == .faults) { spot in handleTap(spot) }
                 .ignoresSafeArea()
 
             vignette
@@ -67,6 +74,12 @@ struct RootView: View {
                     }
                     Spacer()
                     controlPanel
+                        .transition(.blurFade.combined(with: .move(edge: .bottom)))
+                } else if mode == .music {
+                    Spacer()
+                    MusicPanel(car: car)
+                        .padding(16)
+                        .frostedGlass(cornerRadius: 30)
                         .transition(.blurFade.combined(with: .move(edge: .bottom)))
                 } else {
                     FaultsView(onConnect: { showConnection = true })
@@ -266,7 +279,7 @@ struct RootView: View {
             }
         }
         .padding(16)
-        .glass(cornerRadius: 30)
+        .frostedGlass(cornerRadius: 30)
     }
 
     private var zonePicker: some View {
