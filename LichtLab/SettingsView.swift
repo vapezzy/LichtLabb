@@ -6,6 +6,8 @@ struct SettingsView: View {
     @AppStorage("rearLightStyle") private var rearStyleRaw = RearLightStyle.original.rawValue
     @AppStorage("paintColor") private var paintRaw = PaintColor.estorilBlau.rawValue
 
+    @State private var showImport = false
+
     private var rearStyle: RearLightStyle { RearLightStyle(rawValue: rearStyleRaw) ?? .original }
 
     var body: some View {
@@ -74,10 +76,18 @@ struct SettingsView: View {
                     } label: {
                         Label("Leuchte hinzufügen", systemImage: "plus")
                     }
+                    Button {
+                        showImport = true
+                    } label: {
+                        Label("Profil importieren", systemImage: "square.and.arrow.down")
+                    }
+                    ShareLink(item: store.profileText) {
+                        Label("Profil exportieren", systemImage: "square.and.arrow.up")
+                    }
                 } header: {
                     Text("Leuchten einrichten")
                 } footer: {
-                    Text("Für nachgerüstete Leuchten kannst du eigene Einträge anlegen und ihnen eine Position am Auto geben.")
+                    Text("Mit „Profil importieren“ richtest du alle Leuchten auf einmal ein. Für nachgerüstete Leuchten kannst du eigene Einträge anlegen und ihnen eine Position am Auto geben.")
                 }
 
                 Section("Werkzeuge") {
@@ -99,6 +109,7 @@ struct SettingsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .sheet(isPresented: $showImport) { ProfileImportView() }
             .navigationTitle("Einstellungen")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -185,5 +196,83 @@ struct PresetEditor: View {
                 result = "❌ \(error.localizedDescription)"
             }
         }
+    }
+}
+
+/// Licht-Profil als Text einfügen – richtet alle Leuchten in einem Schritt ein.
+struct ProfileImportView: View {
+    @EnvironmentObject private var store: PresetStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var text = ""
+    @State private var result: String?
+
+    private var preview: (entries: [PresetStore.ProfileEntry], invalidLines: [Int]) {
+        PresetStore.parseProfile(text)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextEditor(text: $text)
+                        .font(.footnote.monospaced())
+                        .frame(minHeight: 180)
+                        .autocorrectionDisabled()
+                    #if os(iOS)
+                    Button {
+                        if let pasted = UIPasteboard.general.string { text = pasted }
+                    } label: {
+                        Label("Aus Zwischenablage einfügen", systemImage: "doc.on.clipboard")
+                    }
+                    #endif
+                } header: {
+                    Text("Profil")
+                } footer: {
+                    Text("Eine Leuchte pro Zeile: Name; Steuergerät; DID; Steuerdaten; Positionen (optional). Beispiel:\nAngel Eyes links; 40; D1 23; 01; Angel Eye links\nLeuchten mit gleichem Namen werden aktualisiert, neue angelegt.")
+                }
+
+                if !text.isEmpty {
+                    Section("Vorschau") {
+                        ForEach(Array(preview.entries.enumerated()), id: \.offset) { _, entry in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.name)
+                                Text("SG \(entry.ecu) · DID \(entry.did)\(entry.controlData.isEmpty ? "" : " · \(entry.controlData)")")
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        if !preview.invalidLines.isEmpty {
+                            Label("Ungültige Zeilen: \(preview.invalidLines.map(String.init).joined(separator: ", "))",
+                                  systemImage: "exclamationmark.triangle")
+                                .font(.footnote)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+
+                if let result {
+                    Section { Text(result).font(.footnote) }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .navigationTitle("Profil importieren")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Übernehmen") {
+                        let outcome = store.importProfile(text)
+                        Haptics.confirm()
+                        result = "\(outcome.updated) aktualisiert, \(outcome.added) neu angelegt."
+                        if outcome.invalidLines.isEmpty {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { dismiss() }
+                        }
+                    }
+                    .disabled(preview.entries.isEmpty)
+                }
+            }
+        }
+        .presentationBackground(.ultraThinMaterial)
     }
 }

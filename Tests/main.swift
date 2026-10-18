@@ -106,6 +106,50 @@ func run() async {
     await controller.stopShow()
     check(controller.playingShow == nil, "endlos lässt sich stoppen")
 
+    print("Licht-Profil importieren")
+    let profile = """
+    # Test-Profil
+    Angel Eyes links; 40; D1 23; 01; Angel Eye links
+    Angel Eyes rechts; 40; d124; 01
+    Neue OLED-Leuchte; 72; 12 34; ; Rücklicht links, Rücklicht rechts
+    kaputt; ZZ; 1
+    """
+    let parsed = PresetStore.parseProfile(profile)
+    check(parsed.entries.count == 3, "3 gültige Einträge erkannt (\(parsed.entries.count))")
+    check(parsed.invalidLines == [5], "ungültige Zeile 5 gemeldet: \(parsed.invalidLines)")
+    check(parsed.entries[1].did == "D1 24", "DID normalisiert: \(parsed.entries[1].did)")
+    check(parsed.entries[2].spots == [.tailLeft, .tailRight], "Positionen erkannt")
+    let profileStore = PresetStore()
+    profileStore.presets = PresetStore.defaults
+    let outcome = profileStore.importProfile(profile)
+    check(outcome.updated == 2 && outcome.added == 1, "2 aktualisiert, 1 neu (\(outcome.updated)/\(outcome.added))")
+    check(profileStore.presets.first { $0.name == "Angel Eyes links" }?.isConfigured == true, "Angel Eyes links ist eingerichtet")
+    let roundTrip = PresetStore.parseProfile(profileStore.profileText)
+    check(roundTrip.invalidLines.allSatisfy { line in
+        let l = profileStore.profileText.components(separatedBy: "\n")[line - 1]
+        return l.contains("; ; ") || l.contains(";  ;")
+    }, "Export lässt sich wieder einlesen (nur unkonfigurierte Zeilen ungültig)")
+    check(roundTrip.entries.count == 3, "Export enthält die 3 eingerichteten Leuchten")
+
+    print("Szene im Takt am Auto")
+    let musicSim = makeCar()
+    let musicSession = ELMSession(transport: musicSim)
+    await musicSession.initialize()
+    let musicController = LightController(session: musicSession, store: profileStore)
+    musicController.startMusicSync()
+    musicController.musicSceneStep([.angelEyeLeft, .angelEyeRight])
+    try? await Task.sleep(nanoseconds: 1_500_000_000)
+    let onCommands = musicSim.received.filter { $0.hasPrefix("2FD1") && $0.hasSuffix("0301") }
+    check(onCommands.count == 2, "Beat: beide Angel Eyes am FEM eingeschaltet (\(onCommands))")
+    check(musicController.litSpots == [.angelEyeLeft, .angelEyeRight], "3D-Modell zeigt den Szenen-Schritt")
+    musicController.musicSceneStep([])
+    try? await Task.sleep(nanoseconds: 1_000_000_000)
+    let offCommands = musicSim.received.filter { $0.hasPrefix("2FD1") && $0.hasSuffix("00") && $0.count == 8 }
+    check(offCommands.count == 2, "nächster Beat: wieder aus (\(offCommands))")
+    musicController.stopMusicSync()
+    check(musicController.litSpots.isEmpty, "Stopp räumt das 3D-Modell auf")
+    await musicSession.endAllSessions()
+
     print("Adapter lehnt BMW-Adressierung ab")
     let picky = makeCar()
     picky.rejectExtendedAddressing = true

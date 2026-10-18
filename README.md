@@ -25,6 +25,9 @@ direkt antippst.
 - **Musik (Tab „Musik“):** lokale Audiodatei wählen (MP3, M4A, WAV …), die Lichter pulsieren auf Bass, Mitten
   oder Höhen. Empfindlichkeit einstellbar, Lichtgruppen wählbar (Angel Eyes, Rücklichter, Blinker, Nebel, Bremslicht).
   Im 3D-Modell in Echtzeit; am Auto werden die Leuchten pro Beat kurz geschaltet (Verzögerung ca. 0,1–0,3 s).
+  Modus „Szene im Takt“: jeder Beat schaltet die gewählte Szene einen Schritt weiter.
+- **Licht-Profil:** Einstellungen → Leuchten einrichten → „Profil importieren“ richtet alle Leuchten auf einmal ein
+  (eine Zeile pro Leuchte: `Name; Steuergerät; DID; Steuerdaten; Positionen`). „Profil exportieren“ sichert es als Text.
 - **Fehlerspeicher (Tab „Fehler“):** liest die Fehler aller Steuergeräte aus – nur lesen, nichts wird gelöscht.
   Schnell-Scan (bekannte F-Serien-Adressen) oder Vollscan (alle Adressen 01–7F), dazu die genormten
   OBD-II-Codes (P0300 …), Fahrgestellnummer und ein Bericht zum Teilen. Mit „Beispiel ansehen“ auch ohne Auto.

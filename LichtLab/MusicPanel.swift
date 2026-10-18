@@ -31,7 +31,20 @@ struct MusicPanel: View {
     @State private var groups: Set<MusicGroup> = [.angelEyes, .tails]
     @State private var driveCar = true
     @State private var flash = 0.0
+    @State private var lightMode: LightMode = .pulse
+    @AppStorage("musicSceneID") private var sceneID = LightShow.welcome.id
+    @State private var sceneStep = 0
+    @AppStorage("rearLightStyle") private var rearStyleRaw = RearLightStyle.original.rawValue
     @Namespace private var namespace
+
+    /// Pulsieren: gewählte Gruppen blitzen auf jeden Beat. Szene im Takt: jeder Beat = nächster Szenen-Schritt.
+    enum LightMode: String, CaseIterable, Identifiable {
+        case pulse = "Pulsieren", scene = "Szene im Takt"
+        var id: String { rawValue }
+    }
+
+    private var scenes: [LightShow] { LightShow.all(for: RearLightStyle(rawValue: rearStyleRaw) ?? .original) }
+    private var scene: LightShow { scenes.first { $0.id == sceneID } ?? LightShow.welcome }
 
     private var activeSpots: Set<LightSpot> {
         groups.reduce(into: Set<LightSpot>()) { $0.formUnion($1.spots) }
@@ -52,7 +65,12 @@ struct MusicPanel: View {
             transport
             bandPicker
             sensitivity
-            groupChips
+            modePicker
+            if lightMode == .pulse {
+                groupChips.transition(.blurFade)
+            } else {
+                sceneChips.transition(.blurFade)
+            }
             if session.isInitialized {
                 Toggle(isOn: $driveCar) {
                     Label("Auch am Auto schalten", systemImage: "car.side")
@@ -71,16 +89,7 @@ struct MusicPanel: View {
             if case .success(let urls) = result, let url = urls.first { importFile(url) }
         }
         #endif
-        .onAppear {
-            music.onBeat = { [weak car, weak controller] in
-                car?.pushMusicLevel(1)
-                controller?.musicBeat()
-            }
-            music.onLevel = { [weak car] level in
-                car?.pushMusicLevel(level * 0.45)
-            }
-            car.setMusicSpots(activeSpots)
-        }
+        .onAppear(perform: applyMode)
         .onDisappear {
             music.pause()
             music.onBeat = nil
@@ -89,12 +98,17 @@ struct MusicPanel: View {
             controller.stopMusicSync()
         }
         .onChange(of: groups) { _ in
-            car.setMusicSpots(activeSpots)
+            if lightMode == .pulse { car.setMusicSpots(activeSpots) }
+        }
+        .onChange(of: lightMode) { _ in
+            applyMode()
             updateCarSync()
         }
+        .onChange(of: sceneID) { _ in sceneStep = 0 }
         .onChange(of: music.isPlaying) { _ in updateCarSync() }
         .onChange(of: driveCar) { _ in updateCarSync() }
         .onChange(of: music.beatCount) { _ in
+            handleBeat()
             flash = 1
             DispatchQueue.main.async {
                 withAnimation(.easeOut(duration: 0.35)) { flash = 0 }
@@ -111,10 +125,36 @@ struct MusicPanel: View {
     }
 
     private func updateCarSync() {
+        controller.stopMusicSync()
         if music.isPlaying && driveCar && session.isInitialized {
-            controller.startMusicSync(spots: activeSpots)
-        } else {
-            controller.stopMusicSync()
+            controller.startMusicSync()
+        }
+    }
+
+    /// 3D-Modell auf den gewählten Modus einstellen.
+    private func applyMode() {
+        sceneStep = 0
+        switch lightMode {
+        case .pulse:
+            music.onLevel = { [weak car] level in car?.pushMusicLevel(level * 0.45) }
+            car.setMusicSpots(activeSpots)
+        case .scene:
+            music.onLevel = nil
+            car.setMusicSpots([])
+        }
+    }
+
+    private func handleBeat() {
+        guard music.isPlaying else { return }
+        switch lightMode {
+        case .pulse:
+            car.pushMusicLevel(1)
+            controller.musicBeat(spots: activeSpots)
+        case .scene:
+            let steps = scene.steps
+            guard !steps.isEmpty else { return }
+            controller.musicSceneStep(steps[sceneStep % steps.count].spots)
+            sceneStep = (sceneStep + 1) % steps.count
         }
     }
 
@@ -223,6 +263,59 @@ struct MusicPanel: View {
             Image(systemName: "dial.high").foregroundStyle(.secondary)
         }
         .font(.caption)
+    }
+
+    private var modePicker: some View {
+        HStack(spacing: 2) {
+            ForEach(LightMode.allCases) { mode in
+                Button {
+                    Haptics.tap()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { lightMode = mode }
+                } label: {
+                    Text(mode.rawValue)
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .foregroundStyle(lightMode == mode ? Color.black : Color.white.opacity(0.8))
+                        .background {
+                            if lightMode == mode {
+                                Capsule().fill(.white).matchedGeometryEffect(id: "lightMode", in: namespace)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Capsule().fill(.white.opacity(0.08)))
+    }
+
+    private var sceneChips: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(scenes) { item in
+                        let isOn = item.id == sceneID
+                        Button {
+                            Haptics.tap()
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { sceneID = item.id }
+                        } label: {
+                            Label(item.name, systemImage: item.icon)
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .foregroundStyle(isOn ? Color.black : Color.white)
+                                .background(Capsule().fill(isOn ? Color.white : Color.white.opacity(0.08)))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            Text("Jeder Beat schaltet einen Schritt weiter · Schritt \(sceneStep + 1) von \(scene.steps.count)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var groupChips: some View {

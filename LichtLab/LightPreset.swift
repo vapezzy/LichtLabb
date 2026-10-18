@@ -199,6 +199,77 @@ final class PresetStore: ObservableObject {
         LightPreset(name: "Nebelschluss", spots: [.rearFog]),
     ]
 
+    // MARK: - Profil
+
+    struct ProfileEntry: Equatable {
+        var name: String
+        var ecu: String
+        var did: String
+        var controlData: String
+        var spots: [LightSpot]
+    }
+
+    /// Liest ein Licht-Profil: eine Leuchte pro Zeile,
+    /// `Name; Steuergerät; DID; Steuerdaten; Positionen (optional, mit , getrennt)`.
+    /// Leere Zeilen und Zeilen mit # werden übersprungen. Liefert die Einträge und die Nummern ungültiger Zeilen.
+    nonisolated static func parseProfile(_ text: String) -> (entries: [ProfileEntry], invalidLines: [Int]) {
+        var entries: [ProfileEntry] = []
+        var invalid: [Int] = []
+        for (index, raw) in text.components(separatedBy: .newlines).enumerated() {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix("#") { continue }
+            let separator: Character = line.contains(";") ? ";" : (line.contains("\t") ? "\t" : ",")
+            let fields = line.split(separator: separator, omittingEmptySubsequences: false)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+            guard fields.count >= 3, !fields[0].isEmpty,
+                  let ecu = Hex.bytes(fields[1]), ecu.count == 1,
+                  let did = Hex.bytes(fields[2]), did.count == 2
+            else { invalid.append(index + 1); continue }
+            let data = fields.count > 3 ? fields[3] : ""
+            guard Hex.bytes(data) != nil else { invalid.append(index + 1); continue }
+            let spots = fields.count > 4
+                ? fields[4].split(separator: ",").compactMap { name in
+                    LightSpot.allCases.first { $0.title.caseInsensitiveCompare(name.trimmingCharacters(in: .whitespaces)) == .orderedSame
+                        || $0.rawValue.caseInsensitiveCompare(name.trimmingCharacters(in: .whitespaces)) == .orderedSame }
+                }
+                : []
+            entries.append(ProfileEntry(name: fields[0], ecu: Hex.string(ecu, separator: ""),
+                                        did: Hex.string(did), controlData: Hex.string(Hex.bytes(data) ?? []), spots: spots))
+        }
+        return (entries, invalid)
+    }
+
+    /// Übernimmt ein Profil: Leuchten mit gleichem Namen werden aktualisiert, neue angehängt.
+    @discardableResult
+    func importProfile(_ text: String) -> (updated: Int, added: Int, invalidLines: [Int]) {
+        let parsed = Self.parseProfile(text)
+        var updated = 0, added = 0
+        for entry in parsed.entries {
+            if let index = presets.firstIndex(where: { $0.name.caseInsensitiveCompare(entry.name) == .orderedSame }) {
+                presets[index].ecu = entry.ecu
+                presets[index].did = entry.did
+                presets[index].controlData = entry.controlData
+                if !entry.spots.isEmpty { presets[index].spots = entry.spots }
+                updated += 1
+            } else {
+                presets.append(LightPreset(name: entry.name, spots: entry.spots, ecu: entry.ecu,
+                                           did: entry.did, controlData: entry.controlData))
+                added += 1
+            }
+        }
+        return (updated, added, parsed.invalidLines)
+    }
+
+    /// Aktuelles Profil als Text zum Sichern oder Teilen.
+    var profileText: String {
+        var lines = ["# LichtLab Licht-Profil", "# Name; Steuergerät; DID; Steuerdaten; Positionen"]
+        for preset in presets {
+            lines.append([preset.name, preset.ecu, preset.did, preset.controlData,
+                          preset.spots.map(\.title).joined(separator: ", ")].joined(separator: "; "))
+        }
+        return lines.joined(separator: "\n")
+    }
+
     private func save() {
         if let data = try? JSONEncoder().encode(presets) {
             UserDefaults.standard.set(data, forKey: Self.key)

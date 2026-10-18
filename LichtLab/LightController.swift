@@ -161,27 +161,28 @@ final class LightController: ObservableObject {
 
     // MARK: - Musik
 
-    private var musicPresets: [LightPreset] = []
-    private var musicDesired = false
-    private var musicOn = false
+    /// Leuchten, die am Auto gerade an sein sollen bzw. an sind (nur eingerichtete Leuchten werden geschaltet)
+    private var musicDesired: Set<LightSpot> = []
+    private var musicOn: Set<UUID> = []
     private var musicTask: Task<Void, Never>?
     private var musicOffTask: Task<Void, Never>?
 
-    /// Schaltet die passenden Leuchten am Auto im Takt. Es wird immer nur der neueste Zustand gesendet,
+    /// Startet das Schalten am Auto im Takt. Es wird immer nur der neueste Zustand gesendet,
     /// damit sich bei schnellen Beats keine Befehle stauen.
-    func startMusicSync(spots: Set<LightSpot>) {
+    func startMusicSync() {
         stopMusicSync()
-        musicPresets = store.presets.filter { $0.isConfigured && !Set($0.spots).isDisjoint(with: spots) }
-        guard isLive, !musicPresets.isEmpty else { return }
+        guard isLive, store.presets.contains(where: \.isConfigured) else { return }
         musicTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
-                if self.musicDesired != self.musicOn {
-                    let target = self.musicDesired
-                    for preset in self.musicPresets {
-                        try? await self.session.setLight(preset, on: target)
+                let wanted = Set(self.store.presets
+                    .filter { $0.isConfigured && !Set($0.spots).isDisjoint(with: self.musicDesired) }
+                    .map(\.id))
+                if wanted != self.musicOn {
+                    for preset in self.store.presets where preset.isConfigured && wanted.contains(preset.id) != self.musicOn.contains(preset.id) {
+                        try? await self.session.setLight(preset, on: wanted.contains(preset.id))
                     }
-                    self.musicOn = target
+                    self.musicOn = wanted
                 } else {
                     try? await Task.sleep(nanoseconds: 10_000_000)
                 }
@@ -189,26 +190,33 @@ final class LightController: ObservableObject {
         }
     }
 
-    /// Ein Beat: Leuchten kurz an, nach `hold` Sekunden wieder aus.
-    func musicBeat(hold: Double = 0.14) {
-        guard musicTask != nil else { return }
-        musicDesired = true
+    /// Pulsieren: die Leuchten kurz an, nach `hold` Sekunden wieder aus.
+    func musicBeat(spots: Set<LightSpot>, hold: Double = 0.14) {
+        musicDesired = spots
         musicOffTask?.cancel()
         musicOffTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(hold * 1_000_000_000))
             guard !Task.isCancelled else { return }
-            self?.musicDesired = false
+            self?.musicDesired = []
         }
+    }
+
+    /// Szene im Takt: zeigt einen Szenen-Schritt im 3D-Modell und hält ihn am Auto bis zum nächsten Beat.
+    func musicSceneStep(_ spots: Set<LightSpot>) {
+        musicOffTask?.cancel()
+        musicDesired = spots
+        showSpots = spots
     }
 
     func stopMusicSync() {
         musicTask?.cancel()
         musicTask = nil
         musicOffTask?.cancel()
-        musicDesired = false
-        if musicOn {
-            let presets = musicPresets
-            musicOn = false
+        musicDesired = []
+        if playingShow == nil { showSpots = nil }
+        if !musicOn.isEmpty {
+            let presets = store.presets.filter { musicOn.contains($0.id) }
+            musicOn = []
             Task { [weak self] in
                 for preset in presets { try? await self?.session.setLight(preset, on: false) }
             }
