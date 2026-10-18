@@ -5,6 +5,7 @@ struct ConsoleView: View {
     @EnvironmentObject private var session: ELMSession
     @State private var ecu = "72"
     @State private var input = ""
+    @State private var confirmAngelEyesTest = false
 
     private let quickCommands: [(title: String, hex: String)] = [
         ("Fahrgestellnr.", "22 F1 90"),
@@ -63,9 +64,19 @@ struct ConsoleView: View {
                     ForEach(quickCommands, id: \.hex) { quick in
                         Button(quick.title) { send(quick.hex) }
                     }
+                    Button("AE-Test An") { confirmAngelEyesTest = true }
+                        .tint(.orange)
+                    Button("AE-Test Aus") { runAngelEyesTest(on: false) }
+                        .tint(.orange)
                 }
                 .buttonStyle(.bordered)
                 .font(.footnote)
+            }
+            .confirmationDialog("Angel-Eyes-Test", isPresented: $confirmAngelEyesTest, titleVisibility: .visible) {
+                Button("Senden an SG \(ecu.uppercased())") { runAngelEyesTest(on: true) }
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("Schickt 2F 00 48 03 FF an das Steuergerät im SG-Feld. Die Kennung 00 48 ist nicht bestätigt – sie kann einen anderen Ausgang schalten. Nur im Stand. „AE-Test Aus“ gibt die Kontrolle zurück.")
             }
             HStack {
                 TextField("SG", text: $ecu)
@@ -81,6 +92,14 @@ struct ConsoleView: View {
             .textFieldStyle(.roundedBorder)
         }
         .padding()
+    }
+
+    private func runAngelEyesTest(on: Bool) {
+        guard let address = Hex.bytes(ecu), address.count == 1 else {
+            session.error("SG-Feld: bitte eine Adresse wie 40 oder 72 eintragen")
+            return
+        }
+        Task { await session.testAngelEyes(ecu: address[0], on: on) }
     }
 
     private func send(_ text: String) {

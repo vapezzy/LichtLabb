@@ -352,4 +352,23 @@ final class ELMSession: ObservableObject {
         log.append(LogEntry(kind: kind, text: text))
         if log.count > 1000 { log.removeFirst(log.count - 1000) }
     }
+
+
+/// Testet die Angel Eyes direkt über die DID 72 (Hex: 00 48) am FEM/FRM.
+    func testAngelEyes(ecu: UInt8, on: Bool, brightness: UInt8 = 0xFF) async {
+        let did: [UInt8] = [0x00, 0x48] // Dezimal 72 = Hex 00 48
+        do {
+            if on {
+                let request: [UInt8] = [0x2F] + did + [0x03, brightness]
+                try await uds(request, ecu: ecu)
+                info("Angel Eyes (DID 72) eingeschaltet.")
+            } else {
+                let request: [UInt8] = [0x2F] + did + [0x00]
+                try await uds(request, ecu: ecu)
+                info("Angel Eyes (DID 72) ausgeschaltet.")
+            }
+        } catch {
+            self.error("Fehler beim Schalten der Angel Eyes: \(error.localizedDescription)")
+        }
+    }
 }
