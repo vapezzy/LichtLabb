@@ -40,6 +40,13 @@ struct MusicPanel: View {
     var body: some View {
         VStack(spacing: 14) {
             header
+            if let error = music.errorMessage {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .transition(.blurFade)
+            }
             SpectrumView(bars: music.bars, band: music.band)
                 .frame(height: 64)
             transport
@@ -54,12 +61,16 @@ struct MusicPanel: View {
                 .tint(.cyan)
             }
         }
-        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
-            if case .success(let urls) = result, let url = urls.first {
-                music.load(url)
-                music.play()
-            }
+        #if os(iOS)
+        .sheet(isPresented: $showImporter) {
+            AudioDocumentPicker { url in importFile(url) }
+                .ignoresSafeArea()
         }
+        #else
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: AudioFileTypes.all, allowsMultipleSelection: false) { result in
+            if case .success(let urls) = result, let url = urls.first { importFile(url) }
+        }
+        #endif
         .onAppear {
             music.onBeat = { [weak car, weak controller] in
                 car?.pushMusicLevel(1)
@@ -88,6 +99,14 @@ struct MusicPanel: View {
             DispatchQueue.main.async {
                 withAnimation(.easeOut(duration: 0.35)) { flash = 0 }
             }
+        }
+    }
+
+    private func importFile(_ url: URL) {
+        music.load(url)
+        if music.errorMessage == nil {
+            Haptics.confirm()
+            music.play()
         }
     }
 
@@ -135,11 +154,6 @@ struct MusicPanel: View {
                     .foregroundStyle(music.title == nil ? Color.black : Color.white)
             }
             .buttonStyle(.plain)
-        }
-        .overlay(alignment: .bottom) {
-            if let error = music.errorMessage {
-                Text(error).font(.caption2).foregroundStyle(.orange).offset(y: 18)
-            }
         }
     }
 

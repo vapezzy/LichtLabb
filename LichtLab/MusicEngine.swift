@@ -141,7 +141,9 @@ final class MusicEngine: ObservableObject {
             engine.connect(player, to: engine.mainMixerNode, format: file.processingFormat)
             installTapIfNeeded()
         } catch {
-            errorMessage = "Datei konnte nicht geöffnet werden: \(error.localizedDescription)"
+            file = nil
+            title = nil
+            errorMessage = "„\(url.lastPathComponent)“ lässt sich nicht abspielen. Unterstützt: MP3, M4A/AAC, WAV, AIFF, FLAC, CAF. Songs aus Apple Music (Kopierschutz) gehen nicht."
         }
     }
 
@@ -149,7 +151,10 @@ final class MusicEngine: ObservableObject {
     private static func copyToTemporary(_ url: URL) throws -> URL {
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        let target = FileManager.default.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("Musik", isDirectory: true)
+        try? FileManager.default.removeItem(at: folder)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let target = folder.appendingPathComponent(url.lastPathComponent)
         try? FileManager.default.removeItem(at: target)
         try FileManager.default.copyItem(at: url, to: target)
         return target
