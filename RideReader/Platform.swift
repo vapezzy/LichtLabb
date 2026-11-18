@@ -11,6 +11,12 @@ enum Haptics {
         #endif
     }
 
+    static func impact() {
+        #if os(iOS)
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred(intensity: 1)
+        #endif
+    }
+
     static func confirm() {
         #if os(iOS)
         UINotificationFeedbackGenerator().notificationOccurred(.success)

@@ -15,6 +15,11 @@ enum Motion {
         1 - pow(1 - x, 4)
     }
 
+    /// Sehr weiches Auslaufen – typisch für Marken-Animationen.
+    static func expoOut(_ x: Double) -> Double {
+        x >= 1 ? 1 : 1 - pow(2, -10 * x)
+    }
+
     /// Leichtes Überschwingen am Ende – wirkt „federnd“.
     static func backOut(_ x: Double) -> Double {
         let c1 = 1.70158, c3 = c1 + 1
@@ -26,217 +31,362 @@ enum Motion {
     }
 }
 
-/// Kino-Intro: Laserlinie → Auto wird Linie für Linie gezeichnet → Lack, Räder, Licht → Schriftzug RideReader.
-/// Läuft komplett über die Zeit (TimelineView), daher flüssig mit 120 Hz. Antippen überspringt.
+/// Marken-Intro:
+/// 1. Ein Lichtfaden zieht sich auf, die Buchstaben steigen dahinter hervor (mit chromatischem Versatz)
+/// 2. Kurzes Einatmen – dann der **Durchbruch**: Blitz, Schockwellen, Glassplitter, Risse, der Schriftzug springt nach vorn
+///    und erblüht im Markenverlauf
+/// 3. Der Hintergrund wird durchsichtig, die Startseite baut sich darunter auf, während der Schriftzug
+///    obenauf bleibt und in den Kopf der Startseite gleitet.
+/// Läuft komplett über die Zeit (TimelineView) – flüssig mit 120 Hz. Antippen überspringt.
 struct IntroView: View {
+    /// Wird aufgerufen, sobald die Startseite darunter sichtbar werden soll
+    var onReveal: () -> Void = {}
     var onFinish: () -> Void
     /// Für Screenshots: Intro bei dieser Sekunde anhalten
     var frozenTime: Double?
 
     @State private var start = Date()
+    @State private var revealed = false
     @State private var finished = false
 
-    static let duration = 4.6
+    static let impact = 1.5
+    static let revealStart = 2.9
+    static let duration = 4.15
+    /// Größe des Schriftzugs im Kopf der Startseite und dessen Mittelpunkt (ab sicherem Bereich oben)
+    static let headerLogoSize: CGFloat = 22
+    static let headerLogoCenterY: CGFloat = 8 + 16
 
     var body: some View {
         TimelineView(.animation(paused: frozenTime != nil)) { context in
             let t = frozenTime ?? context.date.timeIntervalSince(start)
             scene(t)
+                .onChange(of: t >= Self.impact) { hit in
+                    if hit && frozenTime == nil { Haptics.impact() }
+                }
+                .onChange(of: t >= Self.revealStart) { due in
+                    if due { reveal() }
+                }
                 .onChange(of: t >= Self.duration) { done in
                     if done { finish() }
                 }
         }
         .contentShape(Rectangle())
-        .onTapGesture { finish() }
+        .onTapGesture {
+            reveal()
+            finish()
+        }
         .onAppear { start = Date() }
+    }
+
+    private func reveal() {
+        guard !revealed, frozenTime == nil else { return }
+        revealed = true
+        onReveal()
     }
 
     private func finish() {
         guard !finished, frozenTime == nil else { return }
         finished = true
-        Haptics.tap()
         onFinish()
     }
 
     @ViewBuilder
     private func scene(_ t: Double) -> some View {
-        let outline = Motion.ease(t, 0.35, 1.7)
-        let details = Motion.ease(t, 1.0, 1.9)
-        let wheels = Motion.backOut(Motion.progress(t, 1.25, 1.75))
-        let fill = Motion.ease(t, 1.75, 2.4)
-        let lights = Motion.easeOut(Motion.progress(t, 2.05, 2.45))
-        // Räder drehen sich schnell ein und laufen aus
-        let spin = 900 * Motion.easeOut(Motion.progress(t, 1.25, 3.2))
-        let push = Motion.ease(t, 1.8, 4.2)
-        let exit = Motion.ease(t, 3.95, Self.duration)
+        let d = t - Self.impact                                   // Zeit seit dem Durchbruch
+        let bloom = Motion.easeOut(Motion.progress(t, Self.impact, Self.impact + 0.6))
+        let reveal = Motion.ease(t, Self.revealStart, Self.revealStart + 0.85)
+        let fadeOut = Motion.ease(t, 3.75, Self.duration)
 
         GeometryReader { geo in
-            let w = geo.size.width
+            let w = geo.size.width, h = geo.size.height
+            let size = min(w * 0.105, 46)
+            let center = CGPoint(x: w / 2, y: h * 0.46)
+            let headerScale = Self.headerLogoSize / size
+            let logoY = center.y + (Self.headerLogoCenterY - center.y) * CGFloat(reveal)
+            let logoScale = 1 + (headerScale - 1) * CGFloat(reveal)
+
             ZStack {
+                // Bühne: schwarz, nach dem Durchbruch farbiges Polarlicht; wird beim Aufdecken durchsichtig
                 ZStack {
                     Color.black
-                    // Studio-Licht hinter dem Auto
-                    RadialGradient(colors: [Theme.accent.opacity(0.22 * fill), .clear],
-                                   center: .center, startRadius: 0, endRadius: w)
-                        .offset(y: -40)
-                    GridFloor().opacity(Motion.ease(t, 0.2, 1.2))
+                    aurora(t: t, w: w, bloom: bloom)
+                        .position(center)
+                    RadialGradient(colors: [.clear, .black.opacity(0.75)], center: .center,
+                                   startRadius: w * 0.35, endRadius: w * 1.2)
+                }
+                .opacity(1 - reveal)
+                .ignoresSafeArea()
+
+                // Lichtfaden unter dem Schriftzug
+                lightThread(t: t, w: w)
+                    .position(x: center.x, y: center.y + size * 0.78)
+                    .opacity(1 - reveal)
+
+                // Schockwellen
+                ForEach(0..<2, id: \.self) { i in
+                    let p = Motion.progress(d - Double(i) * 0.12, 0, 1.1)
+                    Circle()
+                        .strokeBorder(AngularGradient(colors: Theme.brandLoop, center: .center,
+                                                      angle: .degrees(t * 90)),
+                                      lineWidth: 1 + 9 * (1 - p))
+                        .frame(width: w * 0.32, height: w * 0.32)
+                        .scaleEffect(0.2 + 4.2 * Motion.expoOut(p))
+                        .opacity(p > 0 && p < 1 ? (1 - p) * 0.9 : 0)
+                        .blur(radius: 1.5 * p)
+                        .position(center)
                 }
 
-                // Laserlinie (Boden), wächst aus der Mitte
-                let laser = Motion.easeOut(Motion.progress(t, 0.05, 0.6))
-                Capsule()
-                    .fill(LinearGradient(colors: [.clear, Theme.accent, .white, Theme.accent, .clear],
-                                         startPoint: .leading, endPoint: .trailing))
-                    .frame(width: w * 1.1 * laser, height: 1.6)
-                    .shadow(color: Theme.accent, radius: 8)
-                    .offset(y: carGroundY(w))
-                    .opacity(1 - fill * 0.6)
-
-                // Geschwindigkeitslinien
-                SpeedLines(t: t)
-                    .opacity(Motion.progress(t, 1.9, 2.3) * (1 - Motion.progress(t, 3.6, 4.1)))
-
-                CarArtwork(outline: outline, details: details, fill: fill, wheels: wheels,
-                           wheelRotation: .degrees(spin), lights: lights, tint: Theme.accent, time: t)
-                    .frame(width: w * 0.92)
-                    .scaleEffect(0.88 + 0.12 * push)
-                    .offset(x: -14 * (1 - push), y: -30)
-                    .rotation3DEffect(.degrees(8 * (1 - push)), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
-
-                // Scheinwerfer-Blitz über das ganze Bild
-                Circle()
-                    .fill(RadialGradient(colors: [.white.opacity(0.55), Theme.accent.opacity(0.2), .clear],
-                                         center: .center, startRadius: 0, endRadius: w * 0.6))
-                    .frame(width: w * 1.2, height: w * 1.2)
-                    .offset(x: w * 0.42, y: -40)
-                    .blendMode(.screen)
-                    .opacity(flash(t))
-
-                VStack(spacing: 14) {
-                    Spacer()
-                    Wordmark(t: t - 2.25, size: min(w * 0.115, 48))
-                    Text("Dein Auto spricht. Wir übersetzen.")
-                        .font(Theme.rounded(15, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .opacity(Motion.ease(t, 3.1, 3.6))
-                        .blur(radius: 8 * (1 - Motion.ease(t, 3.1, 3.6)))
-                        .offset(y: 8 * (1 - Motion.ease(t, 3.1, 3.6)))
-                    Spacer().frame(height: geo.size.height * 0.16)
-                }
-
-                // Kinobalken
-                VStack {
-                    Rectangle().fill(.black).frame(height: 70 * (1 - Motion.ease(t, 3.4, 4.2)))
-                    Spacer()
-                    Rectangle().fill(.black).frame(height: 70 * (1 - Motion.ease(t, 3.4, 4.2)))
-                }
-
-                // Vignette
-                RadialGradient(colors: [.clear, .black.opacity(0.7)], center: .center,
-                               startRadius: w * 0.45, endRadius: w * 1.25)
+                // Splitter, Risse, Funken
+                BreakthroughBurst(d: d)
+                    .frame(width: w, height: h)
+                    .position(x: w / 2, y: h / 2 + (center.y - h / 2))
                     .allowsHitTesting(false)
 
-                VStack {
-                    Spacer()
-                    Text("Tippen zum Überspringen")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.3))
-                        .padding(.bottom, 24)
-                        .opacity(Motion.ease(t, 0.8, 1.4) * (1 - exit))
-                }
+                // Kleine Oberzeile
+                Text("AUTOMOTIVE DIAGNOSTICS")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(2 + 5 * Motion.expoOut(Motion.progress(t, 1.6, 2.6)))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .opacity(Motion.ease(t, 1.65, 2.2) * (1 - reveal))
+                    .position(x: center.x, y: center.y - size * 1.2)
+
+                // Der Schriftzug – bleibt obenauf und gleitet in den Kopf der Startseite
+                logo(t: t, d: d, size: size, bloom: bloom)
+                    .scaleEffect(logoScale)
+                    .position(x: center.x, y: logoY)
+                    .opacity(1 - fadeOut)
+
+                // Unterzeile
+                Text("Dein Auto spricht. Wir übersetzen.")
+                    .font(Theme.rounded(15, weight: .medium))
+                    .foregroundStyle(LinearGradient(colors: [.white.opacity(0.85), Theme.accent.opacity(0.9)],
+                                                    startPoint: .leading, endPoint: .trailing))
+                    .opacity(Motion.ease(t, 2.05, 2.55) * (1 - reveal))
+                    .blur(radius: 8 * (1 - Motion.ease(t, 2.05, 2.55)))
+                    .position(x: center.x, y: center.y + size * 1.45 + 10 * CGFloat(1 - Motion.ease(t, 2.05, 2.55)))
+
+                // Weißer Blitz beim Durchbruch
+                Color.white
+                    .opacity(d > 0 ? 0.6 * exp(-9 * d) : 0)
+                    .blendMode(.screen)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
+                Text("Tippen zum Überspringen")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.3))
+                    .opacity(Motion.ease(t, 0.6, 1.2) * (1 - reveal))
+                    .position(x: w / 2, y: h - 12)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .scaleEffect(1 + 0.08 * exit)
-            .blur(radius: 24 * exit)
-            .opacity(1 - exit)
+            .frame(width: w, height: h)
         }
-        .ignoresSafeArea()
     }
 
-    private func carGroundY(_ width: CGFloat) -> CGFloat {
-        // Unterkante der Räder relativ zur Bildmitte
-        width * 0.92 * (350 - 170) / 1000 - 30
+    // MARK: - Bausteine
+
+    /// Rotierender, stark weichgezeichneter Markenverlauf hinter dem Schriftzug.
+    private func aurora(t: Double, w: CGFloat, bloom: Double) -> some View {
+        ZStack {
+            Circle()
+                .fill(AngularGradient(colors: Theme.brandLoop, center: .center))
+                .frame(width: w * 1.25, height: w * 1.25)
+                .rotationEffect(.degrees(t * 35))
+                .blur(radius: 90)
+                .opacity(0.5 * bloom)
+            Ellipse()
+                .fill(RadialGradient(colors: [Theme.accent.opacity(0.55), .clear], center: .center,
+                                     startRadius: 0, endRadius: w * 0.5))
+                .frame(width: w * 1.1, height: w * 0.45)
+                .opacity(Motion.ease(t, 0.3, 1.2) * (1 - 0.5 * bloom))
+        }
     }
 
-    /// Kurzer heller Blitz, wenn die Scheinwerfer angehen.
-    private func flash(_ t: Double) -> Double {
-        let up = Motion.progress(t, 2.05, 2.18)
-        let down = Motion.progress(t, 2.18, 2.8)
-        return up * (1 - Motion.easeOut(down))
+    /// Feiner Lichtfaden, der sich aus der Mitte aufzieht und beim Durchbruch nach außen schießt.
+    private func lightThread(t: Double, w: CGFloat) -> some View {
+        let grow = Motion.expoOut(Motion.progress(t, 0.1, 1.0))
+        let shoot = Motion.expoOut(Motion.progress(t, Self.impact, Self.impact + 0.7))
+        let width = w * (0.62 * grow + 0.8 * shoot)
+        return Capsule()
+            .fill(LinearGradient(colors: [.clear, Theme.accent, .white, Theme.magenta, .clear],
+                                 startPoint: .leading, endPoint: .trailing))
+            .frame(width: width, height: 1.4 + 1.2 * (1 - shoot))
+            .shadow(color: Theme.accent, radius: 8)
+            .shadow(color: Theme.violet.opacity(0.8), radius: 18)
+            .opacity(1 - shoot * 0.85)
+    }
+
+    /// Schriftzug mit chromatischen Geistern, Erblühen in den Markenverlauf und Glanzlauf.
+    private func logo(t: Double, d: Double, size: CGFloat, bloom: Double) -> some View {
+        // Geister laufen zusammen, beim Einschlag kurz auseinander
+        let converge = size * 0.22 * CGFloat(1 - Motion.ease(t, 0.55, Self.impact))
+        let kick = d > 0 ? size * 0.3 * CGFloat(exp(-9 * d)) : 0
+        let split = converge + kick
+        // Einatmen vor dem Einschlag, dann Sprung nach vorn mit gedämpfter Schwingung
+        let inhale = 1 - 0.045 * Motion.ease(t, 1.15, Self.impact)
+        let punch = d > 0 ? 1 + 0.11 * exp(-5.5 * d) * cos(17 * d) : inhale
+        let sheen = Motion.progress(t, 2.15, 3.0)
+
+        return ZStack {
+            // Glut hinter den Buchstaben
+            Capsule()
+                .fill(LinearGradient(colors: Theme.brandColors, startPoint: .leading, endPoint: .trailing))
+                .frame(width: size * 9, height: size * 1.1)
+                .blur(radius: 34)
+                .opacity(0.55 * bloom)
+
+            LogoLetters(size: size, t: t)
+                .foregroundStyle(Theme.magenta)
+                .offset(x: split)
+                .blendMode(.screen)
+                .opacity(split > 0.5 ? 0.85 : 0)
+            LogoLetters(size: size, t: t)
+                .foregroundStyle(Theme.accent)
+                .offset(x: -split)
+                .blendMode(.screen)
+                .opacity(split > 0.5 ? 0.85 : 0)
+
+            // Hauptschrift: vor dem Einschlag silbern, danach Markenverlauf
+            LogoMark(size: size, t: t)
+                .opacity(bloom)
+            LogoLetters(size: size, t: t)
+                .foregroundStyle(LinearGradient(colors: [.white, Color(white: 0.72)], startPoint: .top, endPoint: .bottom))
+                .opacity(1 - bloom)
+
+            // Glanz, der über den Schriftzug läuft
+            LogoLetters(size: size, t: t)
+                .opacity(0)
+                .overlay {
+                    GeometryReader { geo in
+                        LinearGradient(colors: [.clear, .white.opacity(0.95), .clear], startPoint: .leading, endPoint: .trailing)
+                            .frame(width: geo.size.width * 0.25)
+                            .offset(x: -geo.size.width * 0.3 + geo.size.width * 1.6 * Motion.easeInOut(sheen))
+                    }
+                    .mask { LogoLetters(size: size, t: t) }
+                }
+                .opacity(sheen > 0 && sheen < 1 ? 1 : 0)
+        }
+        .scaleEffect(punch)
+        .shadow(color: Theme.violet.opacity(0.5 * bloom), radius: 20)
     }
 }
 
-/// Der Schriftzug: Buchstaben fliegen gestaffelt aus der Unschärfe ein, danach läuft ein Lichtreflex darüber.
-struct Wordmark: View {
-    /// Zeit seit Beginn der Schrift-Animation (negativ = noch unsichtbar)
-    var t: Double
-    var size: CGFloat = 44
+/// Die Buchstaben von RIDEREADER. Mit `t` steigen sie gestaffelt hinter einer Kante hervor; ohne `t` stehen sie fertig da.
+struct LogoLetters: View {
+    var size: CGFloat
+    var t: Double? = nil
 
-    private let letters = Array("RIDEREADER")
+    static let letters = Array("RIDEREADER")
 
     var body: some View {
-        let sheen = Motion.progress(t, 0.9, 1.7)
-        HStack(spacing: size * 0.02) {
-            ForEach(letters.indices, id: \.self) { i in
-                let p = Motion.progress(t, Double(i) * 0.05, Double(i) * 0.05 + 0.5)
-                let e = Motion.backOut(p)
-                Text(String(letters[i]))
-                    .font(Theme.display(size))
+        HStack(spacing: size * 0.035) {
+            ForEach(0..<Self.letters.count, id: \.self) { i in
+                let begin = 0.5 + Double(i) * 0.05
+                let p = t.map { Motion.progress($0, begin, begin + 0.65) } ?? 1
+                let e = Motion.expoOut(p)
+                Text(String(Self.letters[i]))
+                    .font(Theme.display(size, weight: .heavy))
                     .italic()
-                    .foregroundStyle(i < 4 ? AnyShapeStyle(Color.white)
-                                     : AnyShapeStyle(LinearGradient(colors: [Theme.accent, Theme.accentDeep],
-                                                                    startPoint: .top, endPoint: .bottom)))
-                    .opacity(Motion.easeOut(p))
-                    .blur(radius: 10 * (1 - p))
-                    .offset(y: 26 * (1 - e))
-                    .scaleEffect(0.6 + 0.4 * e)
+                    .offset(y: size * 1.35 * CGFloat(1 - e))
+                    .blur(radius: 5 * CGFloat(1 - p))
             }
         }
+        .padding(.horizontal, size * 0.3)
+        .frame(height: size * 1.45)
+        .clipped()
         .fixedSize()
-        .overlay(
-            GeometryReader { geo in
-                LinearGradient(colors: [.clear, .white.opacity(0.85), .clear], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: geo.size.width * 0.3)
-                    .offset(x: -geo.size.width * 0.3 + geo.size.width * 1.6 * sheen)
-                    .blendMode(.overlay)
+    }
+}
+
+/// Der fertige Schriftzug im Markenverlauf – im Intro und im Kopf der Startseite identisch.
+struct LogoMark: View {
+    var size: CGFloat
+    var t: Double? = nil
+
+    var body: some View {
+        LogoLetters(size: size, t: t)
+            .opacity(0)
+            .overlay {
+                Theme.logoGradient
+                    .mask { LogoLetters(size: size, t: t) }
             }
-            .mask(
-                HStack(spacing: size * 0.02) {
-                    ForEach(letters.indices, id: \.self) { i in
-                        Text(String(letters[i])).font(Theme.display(size)).italic()
+    }
+}
+
+/// Der Durchbruch: Risse wie in Glas, Splitter und Funken fliegen aus der Mitte. `d` = Sekunden seit dem Einschlag.
+struct BreakthroughBurst: View {
+    var d: Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            guard d > 0, d < 1.8 else { return }
+            let c = CGPoint(x: size.width / 2, y: size.height / 2)
+            let colors: [Color] = [Theme.accent, Theme.violet, Theme.magenta, .white, Theme.accentDeep]
+
+            // Risse: zackige Linien, die blitzschnell aufreißen und verglühen
+            let crack = min(d / 0.1, 1)
+            let crackFade = max(0, 1 - d / 0.75)
+            if crackFade > 0 {
+                var cracks = Path()
+                for i in 0..<14 {
+                    var pt = c
+                    cracks.move(to: pt)
+                    let base = Double(i) / 14 * .pi * 2 + rand(i) * 0.35
+                    for s in 1...5 {
+                        let len = CGFloat(14 + 26 * rand(i * 7 + s)) * CGFloat(crack)
+                        let a = base + (rand(i * 13 + s) - 0.5) * 0.8
+                        pt = CGPoint(x: pt.x + CGFloat(cos(a)) * len, y: pt.y + CGFloat(sin(a)) * len * 0.8)
+                        cracks.addLine(to: pt)
                     }
                 }
-                .fixedSize()
-            )
-            .opacity(sheen > 0 && sheen < 1 ? 1 : 0)
-        )
-        .shadow(color: Theme.accent.opacity(0.45), radius: 18)
-    }
-}
+                ctx.stroke(cracks, with: .color(.white.opacity(0.75 * crackFade)), lineWidth: 1)
+                var glow = ctx
+                glow.addFilter(.blur(radius: 4))
+                glow.stroke(cracks, with: .color(Theme.accent.opacity(0.8 * crackFade)), lineWidth: 2.5)
+            }
 
-/// Horizontale Lichtstreifen, die am Auto vorbeiziehen.
-struct SpeedLines: View {
-    var t: Double
+            // Splitter und Funken als Lichtstreifen
+            var glow = ctx
+            glow.addFilter(.blur(radius: 3))
+            for i in 0..<60 {
+                let angle = rand(i) * .pi * 2
+                let speed = 220 + 560 * rand(i + 100)
+                let lifetime = 0.8 + 0.8 * rand(i + 200)
+                let life = d / lifetime
+                guard life < 1 else { continue }
+                let travel = CGFloat(speed * Motion.expoOut(min(d / 1.3, 1)) * 0.8)
+                let dir = CGPoint(x: CGFloat(cos(angle)), y: CGFloat(sin(angle)) * 0.7)
+                let pos = CGPoint(x: c.x + dir.x * travel, y: c.y + dir.y * travel)
+                let tail = CGFloat(8 + 46 * (1 - min(d / 0.6, 1)))
+                var streak = Path()
+                streak.move(to: pos)
+                streak.addLine(to: CGPoint(x: pos.x - dir.x * tail, y: pos.y - dir.y * tail))
+                let color = colors[i % colors.count].opacity(1 - life)
+                let width = CGFloat(1 + 2.2 * rand(i + 300))
+                ctx.stroke(streak, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
+                glow.stroke(streak, with: .color(color), style: StrokeStyle(lineWidth: width * 2.5, lineCap: .round))
 
-    var body: some View {
-        Canvas { context, size in
-            for i in 0..<18 {
-                let seed = Double(i) * 37.13
-                let y = size.height * (0.3 + 0.4 * fract(sin(seed) * 43758.5))
-                let speed = 900 + 700 * fract(seed * 0.618)
-                let length = 60 + 140 * fract(seed * 1.37)
-                let x = size.width + length - CGFloat(fmod(t * speed + seed * 50, Double(size.width + length * 2)))
-                var line = Path()
-                line.move(to: CGPoint(x: x, y: y))
-                line.addLine(to: CGPoint(x: x + length, y: y))
-                context.stroke(line, with: .linearGradient(
-                    Gradient(colors: [Theme.accent.opacity(0.0), Theme.accent.opacity(0.6)]),
-                    startPoint: CGPoint(x: x + length, y: y), endPoint: CGPoint(x: x, y: y)),
-                               lineWidth: i % 3 == 0 ? 1.6 : 0.8)
+                // jeder vierte ist ein kleiner, rotierender Glassplitter
+                if i % 4 == 0 {
+                    var shard = ctx
+                    shard.translateBy(x: pos.x, y: pos.y)
+                    shard.rotate(by: .radians(angle + d * (4 + 6 * rand(i + 400))))
+                    let s = CGFloat(4 + 6 * rand(i + 500))
+                    var tri = Path()
+                    tri.move(to: CGPoint(x: -s, y: -s * 0.4))
+                    tri.addLine(to: CGPoint(x: s, y: 0))
+                    tri.addLine(to: CGPoint(x: -s * 0.3, y: s * 0.6))
+                    tri.closeSubpath()
+                    shard.fill(tri, with: .color(.white.opacity(0.55 * (1 - life))))
+                    shard.stroke(tri, with: .color(colors[(i / 4) % colors.count].opacity(1 - life)), lineWidth: 0.8)
+                }
             }
         }
-        .allowsHitTesting(false)
+        .blendMode(.screen)
     }
 
-    private func fract(_ x: Double) -> Double { x - floor(x) }
+    /// Feste Pseudo-Zufallszahl 0…1 je Index (gleiches Bild bei jedem Durchlauf).
+    private func rand(_ i: Int) -> Double {
+        let x = sin(Double(i) * 12.9898 + 78.233) * 43758.5453
+        return x - floor(x)
+    }
 }

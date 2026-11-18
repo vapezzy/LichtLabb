@@ -46,11 +46,15 @@ struct RootView: View {
     @EnvironmentObject private var scanner: FaultScanner
 
     @State private var showIntro: Bool
+    /// Startseite sichtbar – wird schon während des Intros gesetzt, damit sie sich unter dem Schriftzug aufbaut
+    @State private var revealed: Bool
     @State private var tab: AppTab
 
     init() {
         let shot = LaunchOptions.shot
-        _showIntro = State(initialValue: shot == nil || shot == "intro")
+        let intro = shot == nil || shot == "intro"
+        _showIntro = State(initialValue: intro)
+        _revealed = State(initialValue: !intro)
         _tab = State(initialValue: shot == "settings" ? .settings : .home)
     }
 
@@ -69,9 +73,9 @@ struct RootView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 TabBar(tab: $tab)
                     .padding(.bottom, 4)
+                    .buildIn(7, rise: 40)
             }
-            .blur(radius: showIntro ? 30 : 0)
-            .scaleEffect(showIntro ? 1.06 : 1)
+            .environment(\.pageRevealed, revealed)
 
             if scanner.isBusy {
                 ScanOverlay()
@@ -80,8 +84,11 @@ struct RootView: View {
             }
 
             if showIntro {
-                IntroView(onFinish: {
-                    withAnimation(.easeInOut(duration: 0.8)) { showIntro = false }
+                IntroView(onReveal: {
+                    revealed = true
+                }, onFinish: {
+                    revealed = true
+                    withAnimation(.easeOut(duration: 0.5)) { showIntro = false }
                 }, frozenTime: LaunchOptions.introTime)
                 .transition(.opacity)
                 .zIndex(10)
@@ -93,6 +100,7 @@ struct RootView: View {
     }
 
     private func replayIntro() {
+        revealed = false
         withAnimation(.easeInOut(duration: 0.4)) { showIntro = true }
     }
 
@@ -127,15 +135,16 @@ struct TabBar: View {
                         Text(item.title)
                             .font(Theme.rounded(14, weight: .bold))
                     }
-                    .foregroundStyle(tab == item ? Color.black : .white.opacity(0.65))
+                    .foregroundStyle(tab == item ? Color.white : .white.opacity(0.6))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 12)
                     .background {
                         if tab == item {
                             Capsule()
-                                .fill(LinearGradient(colors: [Theme.accent, Theme.accent.opacity(0.75)],
-                                                     startPoint: .top, endPoint: .bottom))
-                                .shadow(color: Theme.accent.opacity(0.55), radius: 12)
+                                .fill(LinearGradient(colors: [Theme.accentDeep, Theme.violet, Theme.magenta.opacity(0.9)],
+                                                     startPoint: .leading, endPoint: .trailing))
+                                .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                                .shadow(color: Theme.violet.opacity(0.6), radius: 14)
                                 .matchedGeometryEffect(id: "pill", in: namespace)
                         }
                     }
@@ -164,8 +173,10 @@ struct ScanOverlay: View {
             VStack(spacing: 18) {
                 Spacer()
                 VStack(spacing: 6) {
-                    Text(scanning ? "Kontrolle läuft" : "Radiergummi im Einsatz")
+                    Text(scanning ? "Kontrolle läuft" : "Die Crew räumt auf")
                         .font(Theme.display(26))
+                        .foregroundStyle(scanning ? Theme.titleGradient
+                                         : LinearGradient(colors: [.white, Theme.ok], startPoint: .leading, endPoint: .trailing))
                     Text(subtitle(scanning))
                         .font(Theme.rounded(15, weight: .medium))
                         .foregroundStyle(.secondary)
@@ -176,14 +187,15 @@ struct ScanOverlay: View {
                 }
                 .padding(.horizontal, 24)
 
-                MechanicsLoader(progress: scanning ? scanner.progress : nil)
-                    .padding(.horizontal, 12)
+                MechanicsLoader(progress: scanning ? scanner.progress : nil, calm: !scanning)
+                    .frame(maxWidth: 520)
+                    .padding(.horizontal, 16)
 
                 if scanning {
                     Text("\(Int(scanner.progress * 100)) %")
                         .font(Theme.display(34))
                         .monospacedDigit()
-                        .foregroundStyle(Theme.accent)
+                        .foregroundStyle(Theme.brandGradient)
                         .contentTransition(.numericText())
                         .animation(.easeOut(duration: 0.2), value: Int(scanner.progress * 100))
                 }
@@ -214,7 +226,7 @@ struct ScanOverlay: View {
             return scanner.currentStep.isEmpty ? "Die Crew krempelt die Ärmel hoch …" : "Die Crew klopft bei „\(scanner.currentStep)“ an"
         }
         if let address = scanner.clearingAddress {
-            return address == FaultScanner.obdAddress ? "Lösche OBD-II-Fehler …" : "Lösche \(FaultScanner.name(for: address)) …"
+            return address == FaultScanner.obdAddress ? "OBD-II wird geputzt …" : "\(FaultScanner.name(for: address)) wird geputzt …"
         }
         return "Einen Moment …"
     }

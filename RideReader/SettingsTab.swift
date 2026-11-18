@@ -13,20 +13,25 @@ struct SettingsTab: View {
             ZStack {
                 AmbientBackground(tint: session.isInitialized ? Theme.ok : Theme.accent)
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        VStack(spacing: 6) {
                             Text("Einstellungen")
-                                .font(Theme.display(32))
+                                .font(Theme.display(34))
+                                .foregroundStyle(Theme.titleGradient)
+                                .minimumScaleFactor(0.7)
+                                .lineLimit(1)
                             Text("Hier wird geschraubt – an der App.")
                                 .font(Theme.rounded(16, weight: .medium))
                                 .foregroundStyle(.white.opacity(0.65))
                         }
-                        .padding(.top, 8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+                        .buildIn(0)
 
-                        connectionCard
-                        section("Kontrolle") { ModePicker(mode: $scanner.mode) }
-                        toolsCard
-                        tipsCard
+                        connectionCard.buildIn(1)
+                        section("Kontrolle") { ModePicker(mode: $scanner.mode) }.buildIn(2)
+                        toolsCard.buildIn(3)
+                        tipsCard.buildIn(4)
 
                         Text("RideReader \(version) · gebaut mit Liebe und einem 10er-Schlüssel")
                             .font(Theme.rounded(12, weight: .medium))
@@ -34,7 +39,7 @@ struct SettingsTab: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 6)
                     }
-                    .padding(.horizontal, 18)
+                    .pageWidth()
                     .padding(.bottom, 30)
                 }
                 .scrollIndicators(.hidden)
@@ -167,11 +172,14 @@ struct SettingsTab: View {
         } label: {
             Label(title, systemImage: icon)
                 .font(Theme.rounded(15, weight: .bold))
-                .foregroundStyle(filled ? Color.black : color)
+                .foregroundStyle(filled ? Color.white : color)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
-                    Capsule().fill(filled ? AnyShapeStyle(color) : AnyShapeStyle(color.opacity(0.12)))
+                    Capsule().fill(filled
+                                   ? AnyShapeStyle(LinearGradient(colors: [color, Theme.violet.opacity(0.85)],
+                                                                  startPoint: .leading, endPoint: .trailing))
+                                   : AnyShapeStyle(color.opacity(0.12)))
                 )
                 .overlay(Capsule().strokeBorder(color.opacity(filled ? 0 : 0.45), lineWidth: 1))
         }
@@ -208,7 +216,7 @@ struct SettingsTab: View {
     private func row(_ title: String, icon: String, detail: String?) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(Theme.accent)
+                .foregroundStyle(Theme.brandGradient)
                 .frame(width: 26)
             Text(title).font(Theme.rounded(15, weight: .semibold))
             Spacer()
@@ -252,10 +260,11 @@ struct SettingsTab: View {
             Text(title.uppercased())
                 .font(.system(size: 12, weight: .heavy))
                 .tracking(1.6)
-                .foregroundStyle(.white.opacity(0.45))
-                .padding(.leading, 4)
+                .foregroundStyle(LinearGradient(colors: [Theme.accent, Theme.violet], startPoint: .leading, endPoint: .trailing))
+                .padding(.leading, 6)
             content()
-                .padding(16)
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .card()
         }
     }

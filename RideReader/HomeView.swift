@@ -34,16 +34,10 @@ struct HomeView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
+            // Hintergrund – wird unscharf, sobald Fehler gefunden wurden
             AmbientBackground(tint: stateTint)
-
-            // Das Auto im Hintergrund – wird unscharf, sobald Fehler gefunden wurden
-            HeroCar(tint: stateTint)
-                .padding(.horizontal, 8)
-                .padding(.top, 150)
                 .blur(radius: showFaults ? 22 : 0)
-                .opacity(showFaults ? 0.5 : 1)
-                .scaleEffect(showFaults ? 1.12 : 1)
-                .allowsHitTesting(false)
+                .scaleEffect(showFaults ? 1.1 : 1)
 
             if showFaults {
                 Rectangle()
@@ -54,18 +48,17 @@ struct HomeView: View {
             }
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(spacing: 22) {
                     header
                     if showFaults {
                         faultsContent
                             .transition(.blurRise)
                     } else {
-                        Color.clear.frame(height: 190)
                         startContent
                             .transition(.blurRise)
                     }
                 }
-                .padding(.horizontal, 18)
+                .pageWidth()
                 .padding(.bottom, 30)
             }
             .scrollIndicators(.hidden)
@@ -73,7 +66,7 @@ struct HomeView: View {
             if let message = scanner.clearMessage {
                 Toast(text: message, color: message.contains("wiedergekommen") || message.hasPrefix("Fehler") ? Theme.fault : Theme.ok)
                     .padding(.top, 8)
-                    .padding(.horizontal, 18)
+                    .pageWidth()
                     .transition(.move(edge: .top).combined(with: .blurFade))
                     .zIndex(3)
                     .onTapGesture { scanner.clearMessage = nil }
@@ -116,30 +109,32 @@ struct HomeView: View {
     // MARK: - Kopf
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                HStack(spacing: 0) {
-                    Text("RIDE").foregroundStyle(.white)
-                    Text("READER").foregroundStyle(Theme.accent)
+        VStack(spacing: 18) {
+            // Schriftzug – an genau der Stelle, an der das Intro ihn absetzt
+            LogoMark(size: IntroView.headerLogoSize)
+                .frame(height: 32)
+                .buildIn(delay: 0.85)
+
+            ConnectionChip()
+                .onTapGesture {
+                    Haptics.tap()
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .settings }
                 }
-                .font(Theme.display(17))
-                .italic()
-                Spacer()
-                ConnectionChip()
-                    .onTapGesture {
-                        Haptics.tap()
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .settings }
-                    }
-            }
-            VStack(alignment: .leading, spacing: 4) {
+                .buildIn(0)
+
+            VStack(spacing: 6) {
                 Text("Zuhause")
-                    .font(Theme.display(36))
+                    .font(Theme.display(40))
+                    .foregroundStyle(Theme.titleGradient)
                 Text(greeting)
                     .font(Theme.rounded(16, weight: .medium))
                     .foregroundStyle(.white.opacity(0.65))
+                    .multilineTextAlignment(.center)
                     .animation(.easeInOut, value: greeting)
             }
+            .buildIn(1)
         }
+        .frame(maxWidth: .infinity)
         .padding(.top, 8)
     }
 
@@ -154,7 +149,7 @@ struct HomeView: View {
     // MARK: - Start
 
     private var startContent: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 22) {
             if let reason = scanner.abortReason {
                 InfoCard(icon: "exclamationmark.triangle.fill", color: Theme.fault,
                          title: "Kontrolle abgebrochen", text: reason)
@@ -164,7 +159,18 @@ struct HomeView: View {
                 allGoodCard
             }
 
-            controlButton
+            ControlOrb(subtitle: finished ? "Nochmal durchchecken" : "Fehlerspeicher lesen",
+                       healthy: finished && scanner.abortReason == nil) {
+                Haptics.tap()
+                if session.isInitialized {
+                    showNotConnected = false
+                    scanner.start()
+                } else {
+                    showNotConnected = true
+                }
+            }
+            .padding(.vertical, 6)
+            .buildIn(2, rise: 40)
 
             if showNotConnected && !session.isInitialized {
                 notConnectedCard
@@ -172,51 +178,9 @@ struct HomeView: View {
             }
 
             ModePicker(mode: $scanner.mode)
+                .buildIn(3)
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: showNotConnected)
-    }
-
-    /// Der große „Kontrolle“-Knopf mit laufendem Glanz.
-    private var controlButton: some View {
-        Button {
-            Haptics.tap()
-            if session.isInitialized {
-                showNotConnected = false
-                scanner.start()
-            } else {
-                showNotConnected = true
-            }
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle().fill(.black.opacity(0.18))
-                    Image(systemName: "wrench.and.screwdriver.fill")
-                        .font(.system(size: 22, weight: .bold))
-                }
-                .frame(width: 52, height: 52)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Kontrolle")
-                        .font(Theme.display(26))
-                    Text(finished ? "Nochmal alles durchchecken" : "Fehlerspeicher auslesen")
-                        .font(Theme.rounded(14, weight: .semibold))
-                        .opacity(0.7)
-                }
-                Spacer()
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 20, weight: .heavy))
-            }
-            .foregroundStyle(.black)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 18)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(LinearGradient(colors: [Theme.accent, Color(red: 0.55, green: 0.98, blue: 1)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-            )
-            .overlay(Shimmer().clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous)))
-            .shadow(color: Theme.accent.opacity(0.5), radius: 22, y: 8)
-        }
-        .buttonStyle(PressableStyle())
     }
 
     private var notConnectedCard: some View {
@@ -235,7 +199,8 @@ struct HomeView: View {
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
-                        .background(Capsule().fill(Theme.accent))
+                        .background(Capsule().fill(LinearGradient(colors: [Theme.accent, Theme.violet.opacity(0.9)],
+                                                                  startPoint: .leading, endPoint: .trailing)))
                 }
                 Button {
                     showNotConnected = false
@@ -251,7 +216,8 @@ struct HomeView: View {
             .buttonStyle(PressableStyle())
         }
         .padding(18)
-        .card(tint: Theme.accent)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card(tint: Theme.violet)
     }
 
     private var allGoodCard: some View {
@@ -276,7 +242,7 @@ struct HomeView: View {
     // MARK: - Fehler
 
     private var faultsContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 16) {
             summaryCard
 
             ForEach(faultyECUs) { result in
@@ -385,6 +351,7 @@ struct HomeView: View {
             .buttonStyle(PressableStyle())
         }
         .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .card(tint: Theme.color(worst))
     }
 
@@ -421,6 +388,7 @@ struct HomeView: View {
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .card(cornerRadius: 22)
         .opacity(healthy.isEmpty ? 0 : 1)
     }
@@ -450,18 +418,87 @@ struct HomeView: View {
 
 // MARK: - Bausteine der Startseite
 
-/// Das Auto auf der Startseite: schwebt leicht, Räder drehen langsam.
-struct HeroCar: View {
-    var tint: Color
+/// Der große runde „Kontrolle“-Knopf: rotierender Verlaufsring, atmendes Leuchten, kreisender Lichtpunkt.
+/// Alle Bewegungen laufen als Core-Animation (kein Neuzeichnen pro Bild) – dadurch butterweich.
+struct ControlOrb: View {
+    var subtitle: String
+    var healthy: Bool = false
+    var action: () -> Void
+
+    @State private var spin = false
+    @State private var breathe = false
+
+    private let diameter: CGFloat = 236
+
+    private var ringColors: [Color] {
+        healthy ? [Theme.ok, Theme.accent, Theme.ok.opacity(0.6), Theme.accent, Theme.ok] : Theme.brandLoop
+    }
 
     var body: some View {
-        TimelineView(.animation) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            CarArtwork(wheelRotation: .degrees(t * 40), tint: tint, time: t)
-                .offset(y: CGFloat(sin(t * 1.4)) * 4)
-                .rotation3DEffect(.degrees(sin(t * 0.5) * 6), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+        Button(action: action) {
+            ZStack {
+                // Leuchten
+                Circle()
+                    .fill(AngularGradient(colors: ringColors, center: .center))
+                    .blur(radius: 40)
+                    .opacity(breathe ? 0.7 : 0.4)
+                    .scaleEffect(breathe ? 1.06 : 0.94)
+                    .rotationEffect(.degrees(spin ? 360 : 0))
+
+                // Verlaufsring
+                Circle()
+                    .strokeBorder(AngularGradient(colors: ringColors, center: .center), lineWidth: 3.5)
+                    .rotationEffect(.degrees(spin ? 360 : 0))
+
+                // Innere Glasscheibe
+                Circle()
+                    .fill(RadialGradient(colors: [Color(red: 0.11, green: 0.12, blue: 0.2), Theme.background],
+                                         center: UnitPoint(x: 0.35, y: 0.25), startRadius: 0, endRadius: diameter * 0.7))
+                    .overlay(Circle().strokeBorder(
+                        LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.02)], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 1))
+                    .padding(9)
+
+                // Feine Skala, dreht gegenläufig
+                Circle()
+                    .stroke(.white.opacity(0.16), style: StrokeStyle(lineWidth: 1, dash: [1.5, 7]))
+                    .padding(22)
+                    .rotationEffect(.degrees(spin ? -360 : 0))
+
+                // Kreisender Lichtpunkt auf dem Ring
+                Circle()
+                    .fill(.white)
+                    .frame(width: 7, height: 7)
+                    .shadow(color: Theme.accent, radius: 6)
+                    .shadow(color: Theme.violet, radius: 12)
+                    .offset(y: -(diameter / 2 - 1.75))
+                    .rotationEffect(.degrees(spin ? 360 : 0))
+
+                VStack(spacing: 8) {
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(healthy ? LinearGradient(colors: [Theme.ok, Theme.accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                         : Theme.brandGradient)
+                    Text("Kontrolle")
+                        .font(Theme.display(27))
+                        .foregroundStyle(Theme.titleGradient)
+                    Text(subtitle)
+                        .font(Theme.rounded(13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                .overlay(Shimmer().mask {
+                    Text("Kontrolle").font(Theme.display(27))
+                })
+            }
+            .frame(width: diameter, height: diameter)
+            .contentShape(Circle())
         }
-        .animation(.easeInOut(duration: 0.8), value: tint)
+        .buttonStyle(PressableStyle())
+        .onAppear {
+            withAnimation(.linear(duration: 14).repeatForever(autoreverses: false)) { spin = true }
+            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) { breathe = true }
+        }
+        .animation(.easeInOut(duration: 0.8), value: healthy)
     }
 }
 
@@ -531,11 +568,17 @@ struct ModePicker: View {
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(mode == item ? Theme.accent.opacity(0.14) : Color.white.opacity(0.04))
+                            .fill(mode == item
+                                  ? AnyShapeStyle(LinearGradient(colors: [Theme.accent.opacity(0.2), Theme.violet.opacity(0.16)],
+                                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                                  : AnyShapeStyle(Color.white.opacity(0.04)))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(mode == item ? Theme.accent.opacity(0.7) : .white.opacity(0.08), lineWidth: 1.2)
+                            .strokeBorder(mode == item
+                                          ? AnyShapeStyle(LinearGradient(colors: [Theme.accent, Theme.violet, Theme.magenta],
+                                                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                                          : AnyShapeStyle(Color.white.opacity(0.08)), lineWidth: 1.2)
                     )
                 }
                 .buttonStyle(PressableStyle())

@@ -9,6 +9,8 @@ struct MechanicsLoader: View {
     /// 0…1, nil = unbestimmt (Bolt läuft dann hin und her)
     var progress: Double?
     var accent: Color = Theme.accent
+    /// Ruhemodus beim Löschen: die Crew putzt in aller Ruhe den Motor – „Alles wird gut …“
+    var calm = false
 
     @State private var start = Date()
 
@@ -23,6 +25,17 @@ struct MechanicsLoader: View {
         "NICHT ANFASSEN! … ups.",
         "Mein Schraubenschlüssel lebt!",
         "Kaffee! Ich brauch KAFFEE!",
+    ]
+
+    static let calmLines = [
+        "Alles wird gut …",
+        "Alles wird gut … alles wird gut …",
+        "Ganz ruhig, kleiner Motor.",
+        "Alles wird gut …",
+        "Ein bisschen Glanz, ein bisschen Liebe.",
+        "Schhh … gleich ist alles sauber.",
+        "Alles wird gut … alles wird gut …",
+        "Tief einatmen. Und polieren.",
     ]
 
     var body: some View {
@@ -41,27 +54,29 @@ struct MechanicsLoader: View {
 
     @ViewBuilder
     private func bubble(_ t: Double) -> some View {
-        let slot = Int(t / 1.9)
-        let local = t - Double(slot) * 1.9
-        let appear = Motion.backOut(Motion.progress(local, 0.0, 0.25))
-        let fade = 1 - Motion.progress(local, 1.65, 1.9)
-        let joke = Self.jokes[slot % Self.jokes.count]
-        let sides: [UnitPoint] = [.leading, .trailing, .center]
-        let side = sides[slot % 3]
+        let slotLength = calm ? 3.2 : 1.9
+        let slot = Int(t / slotLength)
+        let local = t - Double(slot) * slotLength
+        let appear = calm ? Motion.easeOut(Motion.progress(local, 0.0, 0.6)) : Motion.backOut(Motion.progress(local, 0.0, 0.25))
+        let fade = 1 - Motion.progress(local, slotLength - (calm ? 0.6 : 0.25), slotLength)
+        let lines = calm ? Self.calmLines : Self.jokes
+        let joke = lines[slot % lines.count]
+        let sides: [UnitPoint] = calm ? [.leading, .trailing] : [.leading, .trailing, .center]
+        let side = sides[slot % sides.count]
         Text(joke)
-            .font(Theme.rounded(12, weight: .bold))
+            .font(calm ? Theme.rounded(13, weight: .semibold).italic() : Theme.rounded(12, weight: .bold))
             .foregroundStyle(.black)
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
             .background(
                 BubbleShape(tailX: side == .leading ? 0.25 : side == .trailing ? 0.75 : 0.5)
                     .fill(.white)
-                    .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
+                    .shadow(color: (calm ? Theme.ok : Color.black).opacity(0.35), radius: 6, y: 3)
             )
-            .scaleEffect(appear, anchor: .bottom)
-            .rotationEffect(.degrees(sin(t * 40) * 2.5))
-            .offset(x: CGFloat(sin(t * 53)) * 1.5)
-            .opacity(fade)
+            .scaleEffect(calm ? 0.85 + 0.15 * appear : appear, anchor: .bottom)
+            .rotationEffect(.degrees(calm ? 0 : sin(t * 40) * 2.5))
+            .offset(x: calm ? 0 : CGFloat(sin(t * 53)) * 1.5, y: calm ? CGFloat(sin(t * 1.4)) * 2 : 0)
+            .opacity(fade * (calm ? appear : 1))
             .frame(maxWidth: .infinity, alignment: side == .leading ? .leading : side == .trailing ? .trailing : .center)
             .padding(.horizontal, 8)
     }
@@ -69,6 +84,10 @@ struct MechanicsLoader: View {
     // MARK: - Szene
 
     private func draw(_ ctx: GraphicsContext, size: CGSize, t: Double) {
+        if calm {
+            drawCalm(ctx, size: size, t: t)
+            return
+        }
         let u = size.width / 340   // Basiseinheit, Szene ist für 340 pt Breite entworfen
         let floorY = size.height * 0.74
         let engineCenter = CGPoint(x: size.width * 0.5, y: floorY - 46 * u)
@@ -304,7 +323,7 @@ struct MechanicsLoader: View {
     // MARK: - Figuren
 
     enum Hat { case cap(Color), ponytail, spiky }
-    enum Tool { case wrench, flashlight, none }
+    enum Tool { case wrench, flashlight, cloth, sponge, broom, none }
 
     struct Mechanic {
         var suit: Color
@@ -322,7 +341,7 @@ struct MechanicsLoader: View {
     private func drawMechanic(_ base: GraphicsContext, _ m: Mechanic, feet: CGPoint, scale: CGFloat, facing: CGFloat,
                               walk: Double, armAngle: Double, t: Double, bob: Double = 0, tilt: Double = 0,
                               panic: Bool = false, backArm: Double? = nil, lift: CGFloat = 0, sweat: Bool = false,
-                              dizzy: Bool = false) {
+                              dizzy: Bool = false, serene: Bool = false) {
         // Schatten
         let shadowW = 36 * scale * (1 - min(lift, 30) / 60)
         base.fill(Path(ellipseIn: CGRect(x: feet.x - shadowW / 2 + CGFloat(sin(tilt)) * 40 * scale * facing,
@@ -450,6 +469,12 @@ struct MechanicsLoader: View {
                     if i == 0 { spiral.move(to: q) } else { spiral.addLine(to: q) }
                 }
                 c.stroke(spiral, with: ink, lineWidth: 1.4)
+            } else if serene {
+                // zufrieden geschlossene Augen ^ ^
+                var arc = Path()
+                arc.move(to: CGPoint(x: ex - 4.5, y: -70))
+                arc.addQuadCurve(to: CGPoint(x: ex + 4.5, y: -70), control: CGPoint(x: ex, y: -77))
+                c.stroke(arc, with: ink, style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
             } else if panic {
                 let eye = CGRect(x: ex - 5, y: -80, width: 10, height: 13)
                 c.fill(Path(ellipseIn: eye), with: .color(.white))
@@ -540,25 +565,182 @@ struct MechanicsLoader: View {
             tool.fill(head, with: .color(Color(white: 0.3)))
             tool.stroke(head, with: ink, lineWidth: 1.8)
             tool.fill(Path(ellipseIn: CGRect(x: 19, y: -5, width: 5, height: 10)), with: .color(.white))
+        case .cloth:
+            let cloth = Path(roundedRect: CGRect(x: -2, y: -7, width: 15, height: 13), cornerRadius: 3)
+            tool.fill(cloth, with: .color(Color(red: 0.62, green: 0.9, blue: 1)))
+            tool.stroke(cloth, with: ink, lineWidth: 1.6)
+            for i in 0..<2 {
+                var fold = Path()
+                fold.move(to: CGPoint(x: 2 + CGFloat(i) * 5, y: -5))
+                fold.addLine(to: CGPoint(x: 1 + CGFloat(i) * 5, y: 4))
+                tool.stroke(fold, with: .color(.white.opacity(0.7)), lineWidth: 1)
+            }
+        case .sponge:
+            let sponge = Path(roundedRect: CGRect(x: -1, y: -6, width: 16, height: 11), cornerRadius: 3.5)
+            tool.fill(sponge, with: .color(Color(red: 1, green: 0.86, blue: 0.3)))
+            tool.stroke(sponge, with: ink, lineWidth: 1.6)
+            for (x, y) in [(3.0, -2.0), (8.0, 1.0), (11.0, -3.0)] {
+                tool.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 2.2, height: 2.2)), with: .color(Color(red: 0.85, green: 0.65, blue: 0.15)))
+            }
+        case .broom:
+            var stick = Path()
+            stick.move(to: CGPoint(x: -14, y: 0))
+            stick.addLine(to: CGPoint(x: 30, y: 0))
+            tool.stroke(stick, with: ink, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+            tool.stroke(stick, with: .color(Color(red: 0.75, green: 0.5, blue: 0.28)), style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+            var bristles = Path()
+            bristles.move(to: CGPoint(x: 29, y: -4))
+            bristles.addLine(to: CGPoint(x: 42, y: -9))
+            bristles.addLine(to: CGPoint(x: 42, y: 9))
+            bristles.addLine(to: CGPoint(x: 29, y: 4))
+            bristles.closeSubpath()
+            tool.fill(bristles, with: .color(Color(red: 0.98, green: 0.78, blue: 0.35)))
+            tool.stroke(bristles, with: ink, lineWidth: 1.6)
         case .none:
             break
         }
     }
 
+    // MARK: - Ruhemodus (Löschen)
+
+    /// Die Crew putzt in aller Ruhe: Kenji wischt mit dem Tuch, Mia schrubbt mit dem Schwamm, Bolt fegt den Balken.
+    /// Augen zufrieden geschlossen, Seifenblasen, Glitzer, Summen.
+    private func drawCalm(_ ctx: GraphicsContext, size: CGSize, t: Double) {
+        let u = size.width / 340
+        let floorY = size.height * 0.74
+        let engineCenter = CGPoint(x: size.width * 0.5, y: floorY - 46 * u)
+        let calmGreen = Theme.ok
+
+        // Weiches, warmes Licht – kein Flackern
+        let breathe = 0.85 + 0.15 * sin(t * 1.2)
+        var cone = Path()
+        cone.move(to: CGPoint(x: size.width * 0.44, y: 0))
+        cone.addLine(to: CGPoint(x: size.width * 0.56, y: 0))
+        cone.addLine(to: CGPoint(x: size.width * 0.9, y: floorY + 10 * u))
+        cone.addLine(to: CGPoint(x: size.width * 0.1, y: floorY + 10 * u))
+        cone.closeSubpath()
+        ctx.fill(cone, with: .linearGradient(Gradient(colors: [calmGreen.opacity(0.16 * breathe), Theme.violet.opacity(0.04), .clear]),
+                                             startPoint: .zero, endPoint: CGPoint(x: 0, y: floorY)))
+        ctx.fill(Path(ellipseIn: CGRect(x: size.width * 0.06, y: floorY - 8 * u, width: size.width * 0.88, height: 22 * u)),
+                 with: .radialGradient(Gradient(colors: [Color.white.opacity(0.12), .clear]),
+                                       center: CGPoint(x: size.width / 2, y: floorY), startRadius: 0, endRadius: size.width * 0.45))
+
+        // Glänzender, ruhiger Motor
+        var glow = ctx
+        glow.addFilter(.blur(radius: 24 * u))
+        glow.fill(Path(ellipseIn: CGRect(x: engineCenter.x - 70 * u, y: engineCenter.y - 50 * u, width: 140 * u, height: 100 * u)),
+                  with: .color(calmGreen.opacity(0.18 * breathe)))
+        drawEngine(ctx, center: engineCenter, u: u, t: t, calm: true)
+
+        // Glitzer rund um den Motor
+        for i in 0..<7 {
+            let phase = fmod(t * 0.55 + Double(i) * 0.37, 1)
+            let a = Double(i) * 2.1
+            let p = CGPoint(x: engineCenter.x + CGFloat(cos(a)) * (40 + 18 * CGFloat(i % 3)) * u,
+                            y: engineCenter.y - 10 * u + CGFloat(sin(a)) * 30 * u)
+            drawSparkle(ctx, at: p, size: (3 + 5 * CGFloat(sin(phase * .pi))) * u, alpha: sin(phase * .pi))
+        }
+
+        // KENJI: wischt mit dem Tuch in kleinen Kreisen, summt
+        let kenji = Mechanic(suit: Color(red: 0.2, green: 0.45, blue: 0.95), hair: Color(red: 0.12, green: 0.1, blue: 0.16),
+                             hat: .cap(Color(red: 1, green: 0.35, blue: 0.3)), tool: .cloth, blush: true)
+        let kenjiFeet = CGPoint(x: engineCenter.x - 96 * u, y: floorY)
+        drawMechanic(ctx, kenji, feet: kenjiFeet, scale: u * 0.95, facing: 1, walk: 0,
+                     armAngle: 0.15 + 0.35 * sin(t * 2.6), t: t, bob: sin(t * 1.3) * 1.2,
+                     tilt: 0.04 * sin(t * 1.3), backArm: -0.2 + 0.1 * sin(t * 1.3), serene: true)
+        drawNotes(ctx, from: CGPoint(x: kenjiFeet.x - 6 * u, y: floorY - 98 * u), u: u, t: t)
+
+        // MIA: schrubbt mit dem Schwamm, Seifenblasen steigen auf
+        let mia = Mechanic(suit: Color(red: 1, green: 0.55, blue: 0.2), hair: Color(red: 0.95, green: 0.45, blue: 0.62),
+                           hat: .ponytail, tool: .sponge, blush: true)
+        let miaFeet = CGPoint(x: engineCenter.x + 94 * u, y: floorY)
+        drawMechanic(ctx, mia, feet: miaFeet, scale: u * 0.85, facing: -1, walk: 0,
+                     armAngle: 0.3 + 0.3 * sin(t * 3.1 + 1), t: t, bob: sin(t * 1.3 + 2) * 1.2,
+                     tilt: 0.05 * sin(t * 1.1 + 1), serene: true)
+        drawSoapBubbles(ctx, from: CGPoint(x: miaFeet.x - 26 * u, y: engineCenter.y), u: u, t: t)
+
+        // Balken: ein ruhiges, glänzendes Band, das Bolt sauber fegt
+        let trackY = floorY + 30 * u
+        let track = CGRect(x: size.width * 0.08, y: trackY, width: size.width * 0.84, height: 8 * u)
+        ctx.fill(Path(roundedRect: track, cornerRadius: 4 * u), with: .color(.white.opacity(0.08)))
+        let sweep = 0.5 + 0.42 * sin(t * 0.55)
+        let boltX = track.minX + track.width * CGFloat(sweep)
+        let facing: CGFloat = cos(t * 0.55) >= 0 ? 1 : -1
+        let clean = CGRect(x: track.minX, y: track.minY, width: track.width, height: track.height)
+        ctx.fill(Path(roundedRect: clean, cornerRadius: 4 * u),
+                 with: .linearGradient(Gradient(colors: [.clear, calmGreen.opacity(0.7), Theme.accent, calmGreen.opacity(0.7), .clear]),
+                                       startPoint: CGPoint(x: boltX - track.width * 0.35, y: 0),
+                                       endPoint: CGPoint(x: boltX + track.width * 0.35, y: 0)))
+        var barGlow = ctx
+        barGlow.addFilter(.blur(radius: 6 * u))
+        barGlow.fill(Path(ellipseIn: CGRect(x: boltX - 40 * u, y: track.minY - 4 * u, width: 80 * u, height: track.height + 8 * u)),
+                     with: .color(calmGreen.opacity(0.45)))
+
+        // BOLT: fegt gemütlich hin und her
+        let bolt = Mechanic(suit: Color(red: 0.25, green: 0.8, blue: 0.55), hair: Color(red: 0.98, green: 0.82, blue: 0.3),
+                            hat: .spiky, tool: .broom, blush: true)
+        drawMechanic(ctx, bolt, feet: CGPoint(x: boltX - facing * 14 * u, y: track.midY - 2 * u), scale: u * 0.62, facing: facing,
+                     walk: t * 5, armAngle: 1.05 + 0.18 * sin(t * 5), t: t, serene: true)
+        drawSparkle(ctx, at: CGPoint(x: boltX + facing * 16 * u, y: track.minY - 6 * u),
+                    size: (2 + 3 * CGFloat(abs(sin(t * 4)))) * u, alpha: 0.9)
+    }
+
+    /// Vierzackiger Glitzerstern.
+    private func drawSparkle(_ ctx: GraphicsContext, at p: CGPoint, size s: CGFloat, alpha: Double) {
+        guard alpha > 0.02 else { return }
+        var star = Path()
+        star.move(to: CGPoint(x: p.x, y: p.y - s))
+        star.addQuadCurve(to: CGPoint(x: p.x + s, y: p.y), control: p)
+        star.addQuadCurve(to: CGPoint(x: p.x, y: p.y + s), control: p)
+        star.addQuadCurve(to: CGPoint(x: p.x - s, y: p.y), control: p)
+        star.addQuadCurve(to: CGPoint(x: p.x, y: p.y - s), control: p)
+        ctx.fill(star, with: .color(.white.opacity(alpha)))
+    }
+
+    /// Schillernde Seifenblasen, die langsam aufsteigen.
+    private func drawSoapBubbles(_ ctx: GraphicsContext, from origin: CGPoint, u: CGFloat, t: Double) {
+        for i in 0..<5 {
+            let life = fmod(t * 0.35 + Double(i) / 5, 1)
+            let r = (3 + 4 * CGFloat(i % 3)) * u * CGFloat(0.6 + 0.4 * life)
+            let x = origin.x + CGFloat(sin(t * 1.4 + Double(i) * 1.7)) * 10 * u - CGFloat(i) * 4 * u
+            let y = origin.y - CGFloat(life) * 90 * u
+            let rect = CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)
+            let alpha = sin(life * .pi)
+            ctx.stroke(Path(ellipseIn: rect), with: .linearGradient(
+                Gradient(colors: [Theme.accent.opacity(0.8 * alpha), Theme.magenta.opacity(0.6 * alpha), Theme.violet.opacity(0.7 * alpha)]),
+                startPoint: CGPoint(x: rect.minX, y: rect.minY), endPoint: CGPoint(x: rect.maxX, y: rect.maxY)), lineWidth: 1.2 * u)
+            ctx.fill(Path(ellipseIn: CGRect(x: rect.minX + r * 0.45, y: rect.minY + r * 0.35, width: r * 0.45, height: r * 0.35)),
+                     with: .color(.white.opacity(0.7 * alpha)))
+        }
+    }
+
+    /// Kleine Noten – jemand summt zufrieden.
+    private func drawNotes(_ ctx: GraphicsContext, from origin: CGPoint, u: CGFloat, t: Double) {
+        for i in 0..<2 {
+            let life = fmod(t * 0.4 + Double(i) * 0.5, 1)
+            let p = CGPoint(x: origin.x - CGFloat(life) * 16 * u + CGFloat(sin(life * 6)) * 4 * u,
+                            y: origin.y - CGFloat(life) * 34 * u)
+            let note = Text(i == 0 ? "♪" : "♫")
+                .font(.system(size: 14 * u, weight: .bold))
+                .foregroundColor(Theme.ok.opacity(sin(life * .pi)))
+            ctx.draw(note, at: p)
+        }
+    }
+
     // MARK: - Requisiten
 
-    private func drawEngine(_ ctx: GraphicsContext, center: CGPoint, u: CGFloat, t: Double) {
+    private func drawEngine(_ ctx: GraphicsContext, center: CGPoint, u: CGFloat, t: Double, calm: Bool = false) {
         var c = ctx
-        // Motor läuft leicht unruhig
-        let rattle = 0.6 + 2.2 * max(0, sin(t * 2.3)) // Motor bockt immer wieder heftig
+        // Motor bockt immer wieder heftig – im Ruhemodus läuft er ganz ruhig
+        let rattle = calm ? 0.0 : 0.6 + 2.2 * max(0, sin(t * 2.3))
         c.translateBy(x: center.x + CGFloat(sin(t * 38) * rattle) * u, y: center.y + CGFloat(cos(t * 31) * rattle * 0.8) * u)
         c.rotate(by: .radians(sin(t * 29) * 0.02 * rattle))
         c.scaleBy(x: u, y: u)
         let ink = GraphicsContext.Shading.color(Self.outline)
         let line = StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
 
-        // Dampfwölkchen
-        for i in 0..<3 {
+        // Dampfwölkchen (nicht beim Putzen)
+        for i in 0..<(calm ? 0 : 3) {
             let life = fmod(t * 0.7 + Double(i) / 3, 1)
             let r = 6 + 10 * life
             let x = 26 + CGFloat(sin(t * 2 + Double(i))) * 6

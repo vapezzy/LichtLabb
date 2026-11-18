@@ -13,6 +13,29 @@ enum Theme {
     /// Rot = schwerwiegender Fehler
     static let severe = Color(red: 1.0, green: 0.25, blue: 0.3)
 
+    static let violet = Color(red: 0.6, green: 0.38, blue: 1.0)
+    static let magenta = Color(red: 1.0, green: 0.34, blue: 0.74)
+
+    /// Markenverlauf Cyan → Blau → Violett → Magenta
+    static let brandColors: [Color] = [accent, accentDeep, violet, magenta]
+    /// Geschlossener Verlauf für Ringe (Anfang = Ende)
+    static let brandLoop: [Color] = [accent, accentDeep, violet, magenta, accent]
+
+    static var brandGradient: LinearGradient {
+        LinearGradient(colors: [accent, violet, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// Verlauf des Schriftzugs: Weiß läuft in die Markenfarben aus.
+    static var logoGradient: LinearGradient {
+        LinearGradient(colors: [.white, accent, violet, magenta], startPoint: .leading, endPoint: .trailing)
+    }
+
+    /// Verlauf für Überschriften
+    static var titleGradient: LinearGradient {
+        LinearGradient(colors: [.white, Color(red: 0.75, green: 0.93, blue: 1), violet.opacity(0.95)],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
     static func color(_ severity: Severity?) -> Color {
         switch severity {
         case .severe: return severe
@@ -72,13 +95,19 @@ extension View {
                     .background(shape.fill(Theme.surface.opacity(0.72)))
                     .overlay(
                         shape.fill(
-                            RadialGradient(colors: [(tint ?? .clear).opacity(0.18), .clear],
+                            RadialGradient(colors: [(tint ?? Theme.accent).opacity(tint == nil ? 0.07 : 0.18), .clear],
                                            center: .topLeading, startRadius: 0, endRadius: 260))
+                    )
+                    .overlay(
+                        shape.fill(
+                            RadialGradient(colors: [Theme.violet.opacity(0.08), .clear],
+                                           center: .bottomTrailing, startRadius: 0, endRadius: 240))
                     )
             )
             .overlay(
                 shape.strokeBorder(
-                    LinearGradient(colors: [(tint ?? .white).opacity(tint == nil ? 0.22 : 0.55), .white.opacity(0.03)],
+                    LinearGradient(colors: [(tint ?? Theme.accent).opacity(tint == nil ? 0.3 : 0.55),
+                                            Theme.violet.opacity(0.12), .white.opacity(0.03)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1)
             )
@@ -120,31 +149,38 @@ struct PressableStyle: ButtonStyle {
     }
 }
 
-/// Dunkler Hintergrund mit langsam wandernden Farbflecken; die Farbe zeigt den Zustand des Autos.
+/// Dunkler Hintergrund mit langsam wandernden Farbflecken in den Markenfarben; `tint` zeigt den Zustand.
+/// Die Flecken liegen im Overlay, damit sie das Layout nie breiter als den Bildschirm machen,
+/// und bewegen sich per Core-Animation statt pro Bild neu gezeichnet zu werden (flüssig, sparsam).
 struct AmbientBackground: View {
     var tint: Color = Theme.accent
+    @State private var drift = false
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            ZStack {
-                Theme.background
-                Circle()
-                    .fill(tint.opacity(0.28))
-                    .frame(width: 460, height: 460)
-                    .blur(radius: 130)
-                    .offset(x: -120 + 40 * sin(t / 5), y: -300 + 30 * cos(t / 6))
-                Circle()
-                    .fill(Theme.accentDeep.opacity(0.22))
-                    .frame(width: 400, height: 400)
-                    .blur(radius: 140)
-                    .offset(x: 150 + 30 * cos(t / 7), y: 280 + 40 * sin(t / 4.5))
-                // feines Raster wie auf einer Hebebühne
-                GridFloor()
-                    .opacity(0.5)
+        Theme.background
+            .overlay {
+                ZStack {
+                    blob(tint.opacity(0.32), size: 420, x: drift ? -70 : -150, y: drift ? -250 : -330, blur: 120)
+                    blob(Theme.violet.opacity(0.26), size: 380, x: drift ? 170 : 110, y: drift ? -60 : 30, blur: 130)
+                    blob(Theme.magenta.opacity(0.16), size: 360, x: drift ? -110 : -40, y: drift ? 330 : 250, blur: 140)
+                    blob(Theme.accentDeep.opacity(0.22), size: 340, x: drift ? 130 : 180, y: drift ? 260 : 350, blur: 130)
+                }
+                .animation(.easeInOut(duration: 9).repeatForever(autoreverses: true), value: drift)
             }
+            .overlay(GridFloor().opacity(0.35))
+            .clipped()
             .ignoresSafeArea()
-        }
+            .animation(.easeInOut(duration: 0.8), value: tint)
+            .onAppear { drift = true }
+            .allowsHitTesting(false)
+    }
+
+    private func blob(_ color: Color, size: CGFloat, x: CGFloat, y: CGFloat, blur: CGFloat) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: size, height: size)
+            .blur(radius: blur)
+            .offset(x: x, y: y)
     }
 }
 
@@ -172,5 +208,54 @@ struct GridFloor: View {
                 startPoint: CGPoint(x: 0, y: horizon), endPoint: CGPoint(x: 0, y: size.height)), lineWidth: 0.7)
         }
         .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Seitenaufbau
+
+private struct PageRevealedKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    /// false, solange das Intro läuft – danach bauen sich die Seiten gestaffelt auf.
+    var pageRevealed: Bool {
+        get { self[PageRevealedKey.self] }
+        set { self[PageRevealedKey.self] = newValue }
+    }
+}
+
+/// Element gleitet nach dem Intro gestaffelt aus der Unschärfe nach oben.
+private struct BuildIn: ViewModifier {
+    @Environment(\.pageRevealed) private var revealed
+    let delay: Double
+    let rise: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(revealed ? 1 : 0)
+            .blur(radius: revealed ? 0 : 12)
+            .offset(y: revealed ? 0 : rise)
+            .scaleEffect(revealed ? 1 : 0.97)
+            .animation(.spring(response: 0.75, dampingFraction: 0.86).delay(revealed ? delay : 0), value: revealed)
+    }
+}
+
+extension View {
+    /// Gestaffelter Aufbau: `index` bestimmt die Reihenfolge.
+    func buildIn(_ index: Int, rise: CGFloat = 26) -> some View {
+        modifier(BuildIn(delay: 0.12 + Double(index) * 0.075, rise: rise))
+    }
+
+    func buildIn(delay: Double, rise: CGFloat = 0) -> some View {
+        modifier(BuildIn(delay: delay, rise: rise))
+    }
+
+    /// Einheitliche, mittige Seitenbreite mit großzügigem Rand (auch auf Pro-Max-Geräten).
+    func pageWidth() -> some View {
+        self
+            .padding(.horizontal, 24)
+            .frame(maxWidth: 560)
+            .frame(maxWidth: .infinity)
     }
 }
