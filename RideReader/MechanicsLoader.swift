@@ -101,7 +101,7 @@ struct MechanicsLoader: View {
         beam.move(to: lamp)
         for spread in [-0.2, 0.2] {
             let a = atan2(dir.y, dir.x) + spread
-            beam.addLine(to: CGPoint(x: lamp.x + cos(a) * reach, y: lamp.y + sin(a) * reach))
+            beam.addLine(to: CGPoint(x: lamp.x + CGFloat(cos(a)) * reach, y: lamp.y + CGFloat(sin(a)) * reach))
         }
         beam.closeSubpath()
         ctx.fill(beam, with: .radialGradient(Gradient(colors: [Color(red: 1, green: 0.95, blue: 0.7).opacity(0.55), .clear]),
@@ -201,7 +201,7 @@ struct MechanicsLoader: View {
         let ink = GraphicsContext.Shading.color(Self.outline)
 
         func limb(from: CGPoint, angle: Double, length: CGFloat, width: CGFloat, color: Color) -> CGPoint {
-            let end = CGPoint(x: from.x + sin(angle) * length, y: from.y + cos(angle) * length)
+            let end = CGPoint(x: from.x + CGFloat(sin(angle)) * length, y: from.y + CGFloat(cos(angle)) * length)
             var p = Path()
             p.move(to: from)
             p.addLine(to: end)
@@ -448,10 +448,10 @@ struct MechanicsLoader: View {
     private func drawSparks(_ ctx: GraphicsContext, at point: CGPoint, u: CGFloat, t: Double) {
         for i in 0..<9 {
             let angle = Double(i) / 9 * .pi * 2 + t * 13
-            let len = (8 + 10 * abs(sin(t * 40 + Double(i)))) * u
+            let len = CGFloat(8 + 10 * abs(sin(t * 40 + Double(i)))) * u
             var p = Path()
             p.move(to: point)
-            p.addLine(to: CGPoint(x: point.x + cos(angle) * len, y: point.y + sin(angle) * len))
+            p.addLine(to: CGPoint(x: point.x + CGFloat(cos(angle)) * len, y: point.y + CGFloat(sin(angle)) * len))
             ctx.stroke(p, with: .color(Color(red: 1, green: 0.85, blue: 0.3)), style: StrokeStyle(lineWidth: 2 * u, lineCap: .round))
         }
         var glow = ctx
@@ -504,8 +504,8 @@ struct MechanicsLoader: View {
         for i in 0..<4 {
             var tread = Path()
             let a = Double(i) * .pi / 2
-            tread.move(to: CGPoint(x: cos(a) * radius * 0.7, y: sin(a) * radius * 0.7))
-            tread.addLine(to: CGPoint(x: cos(a) * radius * 0.95, y: sin(a) * radius * 0.95))
+            tread.move(to: CGPoint(x: CGFloat(cos(a)) * radius * 0.7, y: CGFloat(sin(a)) * radius * 0.7))
+            tread.addLine(to: CGPoint(x: CGFloat(cos(a)) * radius * 0.95, y: CGFloat(sin(a)) * radius * 0.95))
             c.stroke(tread, with: .color(Color(white: 0.4)), lineWidth: 1.6)
         }
     }
