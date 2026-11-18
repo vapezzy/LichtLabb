@@ -2,6 +2,9 @@ import SwiftUI
 
 /// Rußfilter-Seite: Live-Werte des Dieselpartikelfilters, nur lesend.
 struct DPFView: View {
+    /// Schließen-Knopf nur, wenn als eigenes Fenster geöffnet (nicht als Tab)
+    var showsClose = true
+
     @EnvironmentObject private var monitor: DPFMonitor
     @Environment(\.dismiss) private var dismiss
 
@@ -22,6 +25,7 @@ struct DPFView: View {
             }
             .scrollIndicators(.hidden)
 
+            if showsClose {
             HStack {
                 Spacer()
                 Button {
@@ -37,6 +41,7 @@ struct DPFView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
+            }
         }
         .foregroundStyle(.white)
         .preferredColorScheme(.dark)
@@ -50,10 +55,11 @@ struct DPFView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
-            Image(systemName: "aqi.medium")
-                .font(.system(size: 30, weight: .bold))
+            DPFLampIcon(size: 40)
                 .foregroundStyle(Theme.brandGradient)
-                .padding(.top, 26)
+                .background(Glow(color: Theme.violet, opacity: 0.45).frame(width: 110, height: 110))
+                .padding(.top, showsClose ? 26 : 8)
+                .buildIn(0)
             Text("Rußfilter")
                 .font(Theme.display(36))
                 .foregroundStyle(Theme.titleGradient)
@@ -77,7 +83,7 @@ struct DPFView: View {
             }
         }()
         return HStack(spacing: 7) {
-            Circle().fill(color).frame(width: 7, height: 7).shadow(color: color, radius: 4)
+            Circle().fill(color).frame(width: 7, height: 7)
             Text(text).font(Theme.rounded(12, weight: .bold))
         }
         .padding(.horizontal, 12)
@@ -130,7 +136,7 @@ struct DPFView: View {
             Image(systemName: active ? "flame.fill" : "checkmark.seal.fill")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(color)
-                .shadow(color: color.opacity(0.7), radius: 10)
+                .background(Glow(color: color, opacity: 0.45).frame(width: 64, height: 64))
                 .symbolEffectPulse(active)
             VStack(alignment: .leading, spacing: 3) {
                 Text(active ? "Regeneration läuft" : "Keine Regeneration aktiv")
@@ -231,10 +237,8 @@ struct SootGauge: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(color.opacity(0.25))
-                .blur(radius: 40)
-                .scaleEffect(0.9)
+            Glow(color: color, opacity: 0.35)
+                .frame(width: diameter * 1.3, height: diameter * 1.3)
 
             // Skala
             Circle()
@@ -249,7 +253,6 @@ struct SootGauge: View {
                                         center: .center, startAngle: .degrees(0), endAngle: .degrees(270)),
                         style: StrokeStyle(lineWidth: 16, lineCap: .round))
                 .rotationEffect(.degrees(135))
-                .shadow(color: color.opacity(0.6), radius: 10)
 
             // Hitze-Ring während der Regeneration
             if regenerating {

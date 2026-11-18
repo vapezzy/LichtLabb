@@ -27,6 +27,8 @@ struct FaultInfo {
     let searchURL: URL
     /// true, wenn der Text aus der Tabelle stammt; false bei BMW-Herstellercodes (nur Bereich bekannt)
     let isExact: Bool
+    /// Betrifft den Dieselpartikelfilter (Rußfilter) – dann zeigt die App den DPF-Knopf statt der Websuche
+    var isDPF: Bool = false
 
     /// Überschrift wie „P0401 – Abgasrückführung – Durchfluss zu gering“
     var headline: String {
@@ -56,6 +58,7 @@ enum FaultCatalog {
     private enum Area {
         case air, fuelTrim, oxygen, injection, ignition, misfire, knock, cam, cooling, turbo
         case egr, secondaryAir, catalyst, evap, idle, voltage, ecu, transmission, other
+        case dpf, exhaustTemp
 
         var name: String {
             switch self {
@@ -78,6 +81,8 @@ enum FaultCatalog {
             case .ecu: return "Motorsteuergerät"
             case .transmission: return "Getriebe"
             case .other: return "Motor & Abgas"
+            case .dpf: return "Rußfilter"
+            case .exhaustTemp: return "Abgastemperatur"
             }
         }
 
@@ -102,8 +107,12 @@ enum FaultCatalog {
             case .ecu: return "Das Motorsteuergerät meldet einen internen Fehler oder ein Kommunikationsproblem."
             case .transmission: return "Die Getriebesteuerung hat einen Fehler gemeldet, etwa bei Drehzahlsensoren oder der Wandlerkupplung."
             case .other: return "Genormter Fehler aus der Motor- oder Abgassteuerung."
+            case .dpf: return "Der Dieselpartikelfilter (DPF) sammelt Ruß und brennt ihn regelmäßig ab (Regeneration). Gemeldet wird eine zu hohe Beladung, ein unplausibler Differenzdruck oder eine Regeneration, die nicht durchläuft – oft nach vielen Kurzstrecken."
+            case .exhaustTemp: return "Die Abgastemperatursensoren überwachen den Partikelfilter und den Kat. Ohne gültigen Messwert kann der Motor keine Regeneration starten."
             }
         }
+
+        var isDPF: Bool { self == .dpf || self == .exhaustTemp }
 
         var hint: String {
             switch self {
@@ -112,6 +121,8 @@ enum FaultCatalog {
             case .catalyst: return "Erst Zündaussetzer und Lambdasonden ausschließen, bevor ein teurer Kat getauscht wird."
             case .evap: return "Tankdeckel prüfen und richtig schließen; kommt der Fehler wieder, Tankentlüftung prüfen lassen."
             case .voltage: return "Batterie und Ladespannung prüfen lassen."
+            case .dpf: return "Eine längere Fahrt (20–30 min Landstraße/Autobahn, über ca. 2.000 U/min) hilft dem Filter oft beim Freibrennen. Im DPF-Tab siehst du live, ob eine Regeneration läuft."
+            case .exhaustTemp: return "Sensor und Stecker prüfen lassen – solange er fehlt, wird der Rußfilter nicht regeneriert."
             default: return "Prüfen lassen. Kommt der Fehler nach dem Löschen sofort wieder, besteht die Ursache noch."
             }
         }
@@ -203,6 +214,24 @@ enum FaultCatalog {
             "P0715": ("Turbinendrehzahl-Sensor (Getriebe)", .transmission, false),
             "P0720": ("Abtriebsdrehzahl-Sensor (Getriebe)", .transmission, false),
             "P0741": ("Wandlerkupplung – Funktion", .transmission, false),
+            "P2002": ("Partikelfilter – Wirkungsgrad unter Schwellwert (Bank 1)", .dpf, false),
+            "P2003": ("Partikelfilter – Wirkungsgrad unter Schwellwert (Bank 2)", .dpf, false),
+            "P242F": ("Partikelfilter – zu viel Asche (Bank 1)", .dpf, false),
+            "P244A": ("Partikelfilter – Differenzdruck zu niedrig (Bank 1)", .dpf, false),
+            "P244B": ("Partikelfilter – Differenzdruck zu hoch (Bank 1)", .dpf, false),
+            "P2452": ("Differenzdrucksensor Partikelfilter – Stromkreis", .dpf, false),
+            "P2453": ("Differenzdrucksensor Partikelfilter – Messbereich/Funktion", .dpf, false),
+            "P2454": ("Differenzdrucksensor Partikelfilter – Signal zu niedrig", .dpf, false),
+            "P2455": ("Differenzdrucksensor Partikelfilter – Signal zu hoch", .dpf, false),
+            "P2458": ("Partikelfilter – Regeneration dauert zu lange", .dpf, false),
+            "P2459": ("Partikelfilter – Regeneration zu häufig", .dpf, false),
+            "P2463": ("Partikelfilter – zu viel Ruß (Bank 1)", .dpf, false),
+            "P0544": ("Abgastemperatursensor 1 – Stromkreis (Bank 1)", .exhaustTemp, false),
+            "P0545": ("Abgastemperatursensor 1 – Signal zu niedrig (Bank 1)", .exhaustTemp, false),
+            "P0546": ("Abgastemperatursensor 1 – Signal zu hoch (Bank 1)", .exhaustTemp, false),
+            "P2031": ("Abgastemperatursensor 2 – Stromkreis (Bank 1)", .exhaustTemp, false),
+            "P2032": ("Abgastemperatursensor 2 – Signal zu niedrig (Bank 1)", .exhaustTemp, false),
+            "P2033": ("Abgastemperatursensor 2 – Signal zu hoch (Bank 1)", .exhaustTemp, false),
             "P2187": ("Gemisch im Leerlauf zu mager (Bank 1)", .fuelTrim, false),
             "P2188": ("Gemisch im Leerlauf zu fett (Bank 1)", .fuelTrim, false),
             "P2195": ("Lambdasonde (Bank 1) – Signal hängt auf „mager“", .oxygen, false),
@@ -227,14 +256,16 @@ enum FaultCatalog {
         if let entry = obdTable[code] {
             return FaultInfo(code: code, title: entry.title, area: entry.area.name,
                              explanation: entry.area.explanation, hint: entry.area.hint,
-                             severity: entry.severe ? .severe : .fault, searchURL: url, isExact: true)
+                             severity: entry.severe ? .severe : .fault, searchURL: url, isExact: true,
+                             isDPF: entry.area.isDPF)
         }
         let area = obdRange(code)
         let generic = code.count == 5 && code.dropFirst().first == "0"
         let title = generic ? "genormter Fehler" : "herstellerspezifischer Fehler"
         return FaultInfo(code: code, title: title, area: area.name,
-                         explanation: area.explanation + " Der genaue Wortlaut zu \(code) steht nicht in der App – der Web-Knopf sucht danach.",
-                         hint: area.hint, severity: area == .misfire ? .severe : .fault, searchURL: url, isExact: false)
+                         explanation: area.explanation + (area.isDPF ? "" : " Der genaue Wortlaut zu \(code) steht nicht in der App – der Web-Knopf sucht danach."),
+                         hint: area.hint, severity: area == .misfire ? .severe : .fault, searchURL: url, isExact: false,
+                         isDPF: area.isDPF)
     }
 
     /// Ordnet unbekannte Codes über den genormten Nummernbereich ein.
@@ -243,6 +274,8 @@ enum FaultCatalog {
         if letter != "P" { return .other }
         let digits = code.dropFirst(2)
         guard let group = digits.first else { return .other }
+        // P2440–P246F: Partikelfilter, Differenzdruck, Ruß/Asche (genormt)
+        if code.hasPrefix("P244") || code.hasPrefix("P245") || code.hasPrefix("P246") { return .dpf }
         switch group {
         case "0": return .fuelTrim
         case "1": return .air

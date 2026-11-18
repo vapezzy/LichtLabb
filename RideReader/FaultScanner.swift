@@ -343,7 +343,8 @@ final class FaultScanner: ObservableObject {
                 FaultCode(code: "480A1C", status: 0x89),
             ]),
         ]
-        obdCodes = [FaultCode(code: "P0420", status: 0x08, isOBD: true)]
+        obdCodes = [FaultCode(code: "P2463", status: 0x08, isOBD: true),
+                    FaultCode(code: "P0420", status: 0x08, isOBD: true)]
         progress = 1
         phase = .finished(Date())
     }

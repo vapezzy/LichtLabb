@@ -39,9 +39,11 @@ struct MechanicsLoader: View {
     ]
 
     var body: some View {
-        TimelineView(.animation) { context in
+        // Höchstens 60 Bilder/s und Zeichnen abseits des Haupt-Threads: bleibt auch auf alten iPhones flüssig,
+        // die Bedienung (Abbrechen-Knopf) reagiert trotzdem sofort.
+        TimelineView(.animation(minimumInterval: 1.0 / 60)) { context in
             let t = context.date.timeIntervalSince(start)
-            Canvas { ctx, size in
+            Canvas(rendersAsynchronously: true) { ctx, size in
                 draw(ctx, size: size, t: t)
             }
             .overlay(alignment: .top) { bubble(t) }
@@ -71,7 +73,6 @@ struct MechanicsLoader: View {
             .background(
                 BubbleShape(tailX: side == .leading ? 0.25 : side == .trailing ? 0.75 : 0.5)
                     .fill(.white)
-                    .shadow(color: (calm ? Theme.ok : Color.black).opacity(0.35), radius: 6, y: 3)
             )
             .scaleEffect(calm ? 0.85 + 0.15 * appear : appear, anchor: .bottom)
             .rotationEffect(.degrees(calm ? 0 : sin(t * 40) * 2.5))
@@ -194,9 +195,9 @@ struct MechanicsLoader: View {
         ctx.fill(Path(roundedRect: filled, cornerRadius: 4 * u),
                  with: .linearGradient(Gradient(colors: [Theme.accentDeep, accent]),
                                        startPoint: CGPoint(x: filled.minX, y: 0), endPoint: CGPoint(x: filled.maxX, y: 0)))
-        var glow = ctx
-        glow.addFilter(.blur(radius: 6 * u))
-        glow.fill(Path(roundedRect: filled, cornerRadius: 4 * u), with: .color(accent.opacity(0.6)))
+        // Leuchten ohne Blur-Filter: breiter, halbtransparenter Saum
+        ctx.fill(Path(roundedRect: filled.insetBy(dx: -3 * u, dy: -3 * u), cornerRadius: 7 * u), with: .color(accent.opacity(0.18)))
+        ctx.fill(Path(roundedRect: filled.insetBy(dx: -6 * u, dy: -6 * u), cornerRadius: 10 * u), with: .color(accent.opacity(0.08)))
 
         let tireR = 13 * u
         let jitter = CGFloat(sin(t * 47)) * 1.2 * u
@@ -601,6 +602,17 @@ struct MechanicsLoader: View {
         }
     }
 
+    // MARK: - Einzelporträt
+
+    /// Kenji, gut gelaunt mit erhobenem Schraubenschlüssel – für Hinweise außerhalb der Ladeanimation.
+    func drawPortrait(_ ctx: GraphicsContext, size: CGSize) {
+        let kenji = Mechanic(suit: Color(red: 0.2, green: 0.45, blue: 0.95), hair: Color(red: 0.12, green: 0.1, blue: 0.16),
+                             hat: .cap(Color(red: 1, green: 0.35, blue: 0.3)), tool: .wrench, blush: true)
+        let scale = size.height / 118
+        drawMechanic(ctx, kenji, feet: CGPoint(x: size.width * 0.42, y: size.height - 4 * scale), scale: scale, facing: 1,
+                     walk: 0, armAngle: -0.9, t: 0.5, backArm: -0.3)
+    }
+
     // MARK: - Ruhemodus (Löschen)
 
     /// Die Crew putzt in aller Ruhe: Kenji wischt mit dem Tuch, Mia schrubbt mit dem Schwamm, Bolt fegt den Balken.
@@ -626,10 +638,9 @@ struct MechanicsLoader: View {
                                        center: CGPoint(x: size.width / 2, y: floorY), startRadius: 0, endRadius: size.width * 0.45))
 
         // Glänzender, ruhiger Motor
-        var glow = ctx
-        glow.addFilter(.blur(radius: 24 * u))
-        glow.fill(Path(ellipseIn: CGRect(x: engineCenter.x - 70 * u, y: engineCenter.y - 50 * u, width: 140 * u, height: 100 * u)),
-                  with: .color(calmGreen.opacity(0.18 * breathe)))
+        ctx.fill(Path(ellipseIn: CGRect(x: engineCenter.x - 90 * u, y: engineCenter.y - 70 * u, width: 180 * u, height: 140 * u)),
+                 with: .radialGradient(Gradient(colors: [calmGreen.opacity(0.22 * breathe), calmGreen.opacity(0)]),
+                                       center: engineCenter, startRadius: 0, endRadius: 90 * u))
         drawEngine(ctx, center: engineCenter, u: u, t: t, calm: true)
 
         // Glitzer rund um den Motor
@@ -671,10 +682,9 @@ struct MechanicsLoader: View {
                  with: .linearGradient(Gradient(colors: [.clear, calmGreen.opacity(0.7), Theme.accent, calmGreen.opacity(0.7), .clear]),
                                        startPoint: CGPoint(x: boltX - track.width * 0.35, y: 0),
                                        endPoint: CGPoint(x: boltX + track.width * 0.35, y: 0)))
-        var barGlow = ctx
-        barGlow.addFilter(.blur(radius: 6 * u))
-        barGlow.fill(Path(ellipseIn: CGRect(x: boltX - 40 * u, y: track.minY - 4 * u, width: 80 * u, height: track.height + 8 * u)),
-                     with: .color(calmGreen.opacity(0.45)))
+        ctx.fill(Path(ellipseIn: CGRect(x: boltX - 50 * u, y: track.minY - 10 * u, width: 100 * u, height: track.height + 20 * u)),
+                 with: .radialGradient(Gradient(colors: [calmGreen.opacity(0.4), calmGreen.opacity(0)]),
+                                       center: CGPoint(x: boltX, y: track.midY), startRadius: 0, endRadius: 50 * u))
 
         // BOLT: fegt gemütlich hin und her
         let bolt = Mechanic(suit: Color(red: 0.25, green: 0.8, blue: 0.55), hair: Color(red: 0.98, green: 0.82, blue: 0.3),
@@ -809,10 +819,9 @@ struct MechanicsLoader: View {
             p.addLine(to: CGPoint(x: point.x + CGFloat(cos(angle)) * len, y: point.y + CGFloat(sin(angle)) * len))
             ctx.stroke(p, with: .color(Color(red: 1, green: 0.85, blue: 0.3)), style: StrokeStyle(lineWidth: 2 * u, lineCap: .round))
         }
-        var glow = ctx
-        glow.addFilter(.blur(radius: 6 * u))
-        glow.fill(Path(ellipseIn: CGRect(x: point.x - 10 * u, y: point.y - 10 * u, width: 20 * u, height: 20 * u)),
-                  with: .color(Color.yellow.opacity(0.8)))
+        ctx.fill(Path(ellipseIn: CGRect(x: point.x - 14 * u, y: point.y - 14 * u, width: 28 * u, height: 28 * u)),
+                 with: .radialGradient(Gradient(colors: [Color.yellow.opacity(0.8), Color.yellow.opacity(0)]),
+                                       center: point, startRadius: 0, endRadius: 14 * u))
     }
 
     private func drawToolbox(_ ctx: GraphicsContext, _ rect: CGRect, u: CGFloat) {

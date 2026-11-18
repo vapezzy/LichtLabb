@@ -12,6 +12,7 @@ struct ECUSection: View {
     var isClearing: Bool
     var onClear: () -> Void
     var onWeb: (URL) -> Void
+    var onDPF: () -> Void = {}
 
     var body: some View {
         let infos = faults.map { FaultCatalog.info(for: $0, ecu: ecu) }
@@ -21,7 +22,6 @@ struct ECUSection: View {
                 Circle()
                     .fill(color)
                     .frame(width: 9, height: 9)
-                    .shadow(color: color, radius: 5)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .font(Theme.rounded(16, weight: .bold))
@@ -55,17 +55,19 @@ struct ECUSection: View {
             .padding(.horizontal, 4)
 
             ForEach(Array(zip(faults, infos)), id: \.0.id) { fault, info in
-                FaultCard(fault: fault, info: info, onWeb: { onWeb(info.searchURL) })
+                FaultCard(fault: fault, info: info, onWeb: { onWeb(info.searchURL) }, onDPF: onDPF)
             }
         }
     }
 }
 
 /// Ein einzelner Fehler: Code, Klartext, Erklärung, Tipp, Status – und daneben der Web-Knopf.
+/// Bei Rußfilter-Fehlern steht dort stattdessen der DPF-Knopf, und Kenji gibt einen Tipp.
 struct FaultCard: View {
     var fault: FaultCode
     var info: FaultInfo
     var onWeb: () -> Void
+    var onDPF: () -> Void = {}
 
     @State private var expanded = false
 
@@ -73,9 +75,8 @@ struct FaultCard: View {
         let color = Theme.color(info.severity)
         HStack(alignment: .top, spacing: 14) {
             Capsule()
-                .fill(color)
+                .fill(LinearGradient(colors: [color, color.opacity(0.35)], startPoint: .top, endPoint: .bottom))
                 .frame(width: 4)
-                .shadow(color: color.opacity(0.8), radius: 6)
 
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 8) {
@@ -127,36 +128,81 @@ struct FaultCard: View {
                 }
             }
 
-            // Web-Knopf
-            Button {
-                Haptics.tap()
-                onWeb()
-            } label: {
-                VStack(spacing: 4) {
-                    ZStack {
-                        Circle()
-                            .fill(color.opacity(0.16))
-                        Circle()
-                            .strokeBorder(color.opacity(0.5), lineWidth: 1)
-                        Image(systemName: "safari.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(color)
+            if !info.isDPF {
+                // Web-Knopf
+                Button {
+                    Haptics.tap()
+                    onWeb()
+                } label: {
+                    VStack(spacing: 4) {
+                        ZStack {
+                            Circle()
+                                .fill(color.opacity(0.16))
+                            Circle()
+                                .strokeBorder(color.opacity(0.5), lineWidth: 1)
+                            Image(systemName: "safari.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(color)
+                        }
+                        .frame(width: 44, height: 44)
+                        Text("Web")
+                            .font(Theme.rounded(10, weight: .bold))
+                            .foregroundStyle(color.opacity(0.9))
                     }
-                    .frame(width: 44, height: 44)
-                    Text("Web")
-                        .font(Theme.rounded(10, weight: .bold))
-                        .foregroundStyle(color.opacity(0.9))
                 }
+                .buttonStyle(PressableStyle())
+                .accessibilityLabel("\(info.code) im Internet nachschlagen")
             }
-            .buttonStyle(PressableStyle())
-            .accessibilityLabel("\(info.code) im Internet nachschlagen")
         }
         .padding(16)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if info.isDPF {
+                // Sprechblase → Kenji → DPF-Knopf
+                HStack(alignment: .bottom, spacing: 6) {
+                    Spacer(minLength: 0)
+                    CrewHint(text: "Versuch's doch mal mit einer Regeneration!")
+                        .onTapGesture {
+                            Haptics.tap()
+                            onDPF()
+                        }
+                    dpfButton(color)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 14)
+            }
+        }
         .card(cornerRadius: 22, tint: color)
         .contentShape(Rectangle())
         .onTapGesture {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { expanded.toggle() }
         }
+    }
+
+    /// Knopf mit DPF-Kontrollleuchte – öffnet den Rußfilter-Tab.
+    private func dpfButton(_ color: Color) -> some View {
+        Button {
+            Haptics.tap()
+            onDPF()
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(colors: [Theme.fault.opacity(0.28), Theme.magenta.opacity(0.18)],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                    Circle()
+                        .strokeBorder(LinearGradient(colors: [Theme.fault, Theme.magenta.opacity(0.7)],
+                                                     startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.2)
+                    DPFLampIcon(size: 26)
+                        .foregroundStyle(Theme.fault)
+                }
+                .frame(width: 44, height: 44)
+                Text("DPF")
+                    .font(Theme.rounded(10, weight: .bold))
+                    .foregroundStyle(Theme.fault)
+            }
+        }
+        .buttonStyle(PressableStyle())
+        .accessibilityLabel("Rußfilter öffnen")
     }
 }
 
@@ -187,27 +233,24 @@ struct ClearWarningPopup: View {
 
     var body: some View {
         ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay(Color.black.opacity(0.4))
+            Color.black.opacity(0.72)
                 .ignoresSafeArea()
                 .onTapGesture(perform: onCancel)
 
             VStack(spacing: 16) {
-                TimelineView(.animation) { context in
-                    let t = context.date.timeIntervalSinceReferenceDate
-                    ZStack {
-                        Circle()
-                            .fill(Theme.fault.opacity(0.16))
-                            .frame(width: 84, height: 84)
-                            .scaleEffect(1 + 0.08 * sin(t * 3))
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 38, weight: .bold))
-                            .foregroundStyle(Theme.fault)
-                            .shadow(color: Theme.fault.opacity(0.7), radius: 12)
-                            .rotationEffect(.degrees(sin(t * 7) * 6 * max(0, sin(t * 1.4))))
-                    }
+                ZStack {
+                    Glow(color: Theme.fault, opacity: 0.45)
+                        .frame(width: 110, height: 110)
+                        .scaleEffect(appeared ? 1.08 : 0.92)
+                    Circle()
+                        .fill(Theme.fault.opacity(0.16))
+                        .frame(width: 84, height: 84)
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 38, weight: .bold))
+                        .foregroundStyle(LinearGradient(colors: [Theme.fault, Theme.severe], startPoint: .top, endPoint: .bottom))
+                        .rotationEffect(.degrees(appeared ? 5 : -5))
                 }
+                .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: appeared)
                 .frame(height: 90)
 
                 VStack(spacing: 8) {
@@ -266,7 +309,6 @@ struct ClearWarningPopup: View {
             }
             .padding(22)
             .frosted(cornerRadius: 32)
-            .shadow(color: Theme.fault.opacity(0.25), radius: 40)
             .padding(.horizontal, 20)
             .scaleEffect(appeared ? 1 : 0.9)
             .onAppear {

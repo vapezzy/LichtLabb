@@ -61,8 +61,8 @@ private struct BlurFade: ViewModifier {
     let active: Bool
 
     func body(content: Content) -> some View {
+        // Bewusst ohne Weichzeichner: Blur über ganze Seiten ruckelt auf älteren iPhones.
         content
-            .blur(radius: active ? 16 : 0)
             .opacity(active ? 0 : 1)
             .scaleEffect(active ? 0.97 : 1)
     }
@@ -111,14 +111,19 @@ extension View {
                                    startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1)
             )
-            .shadow(color: (tint ?? .black).opacity(tint == nil ? 0.35 : 0.22), radius: 18, y: 10)
+        // Kein .shadow: Schatten werden beim Scrollen in jedem Bild neu berechnet.
     }
 
-    /// Echtes Milchglas für schwebende Elemente (Tab-Leiste, Pop-ups).
+    /// Glas-Optik für schwebende Elemente (Tab-Leiste, Pop-ups). Absichtlich ohne Live-Hintergrund-Blur
+    /// (Material) – der müsste über animierten Flächen in jedem Bild neu gerechnet werden.
     func frosted(cornerRadius: CGFloat = 30) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return self
-            .background(.ultraThinMaterial, in: shape)
+            .background(
+                shape.fill(LinearGradient(colors: [Color(red: 0.15, green: 0.16, blue: 0.22).opacity(0.94),
+                                                   Color(red: 0.07, green: 0.075, blue: 0.11).opacity(0.96)],
+                                          startPoint: .top, endPoint: .bottom))
+            )
             .overlay(
                 shape.strokeBorder(
                     LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom),
@@ -150,37 +155,58 @@ struct PressableStyle: ButtonStyle {
 }
 
 /// Dunkler Hintergrund mit langsam wandernden Farbflecken in den Markenfarben; `tint` zeigt den Zustand.
-/// Die Flecken liegen im Overlay, damit sie das Layout nie breiter als den Bildschirm machen,
-/// und bewegen sich per Core-Animation statt pro Bild neu gezeichnet zu werden (flüssig, sparsam).
+/// Performance: Die Flecken sind weiche Radialverläufe (kein Blur-Filter), liegen im Overlay (verbreitern das
+/// Layout nicht) und bewegen sich nur per Verschiebung – das kostet fast nichts, auch auf alten iPhones.
+/// `dimmed` = Fehleransicht: Hintergrund tritt weich und abgedunkelt zurück.
 struct AmbientBackground: View {
     var tint: Color = Theme.accent
+    var dimmed = false
     @State private var drift = false
 
     var body: some View {
         Theme.background
             .overlay {
                 ZStack {
-                    blob(tint.opacity(0.32), size: 420, x: drift ? -70 : -150, y: drift ? -250 : -330, blur: 120)
-                    blob(Theme.violet.opacity(0.26), size: 380, x: drift ? 170 : 110, y: drift ? -60 : 30, blur: 130)
-                    blob(Theme.magenta.opacity(0.16), size: 360, x: drift ? -110 : -40, y: drift ? 330 : 250, blur: 140)
-                    blob(Theme.accentDeep.opacity(0.22), size: 340, x: drift ? 130 : 180, y: drift ? 260 : 350, blur: 130)
+                    blob(tint.opacity(0.34), size: 680, x: drift ? -70 : -150, y: drift ? -250 : -330)
+                    blob(Theme.violet.opacity(0.28), size: 620, x: drift ? 170 : 110, y: drift ? -60 : 30)
+                    blob(Theme.magenta.opacity(0.17), size: 600, x: drift ? -110 : -40, y: drift ? 330 : 250)
+                    blob(Theme.accentDeep.opacity(0.24), size: 560, x: drift ? 130 : 180, y: drift ? 260 : 350)
                 }
+                .scaleEffect(dimmed ? 1.15 : 1)
                 .animation(.easeInOut(duration: 9).repeatForever(autoreverses: true), value: drift)
             }
-            .overlay(GridFloor().opacity(0.35))
+            .overlay(GridFloor().opacity(dimmed ? 0 : 0.35))
+            .overlay(Color.black.opacity(dimmed ? 0.35 : 0))
             .clipped()
             .ignoresSafeArea()
             .animation(.easeInOut(duration: 0.8), value: tint)
+            .animation(.easeInOut(duration: 0.6), value: dimmed)
             .onAppear { drift = true }
             .allowsHitTesting(false)
     }
 
-    private func blob(_ color: Color, size: CGFloat, x: CGFloat, y: CGFloat, blur: CGFloat) -> some View {
+    private func blob(_ color: Color, size: CGFloat, x: CGFloat, y: CGFloat) -> some View {
         Circle()
-            .fill(color)
+            .fill(RadialGradient(colors: [color, color.opacity(0.45), color.opacity(0)],
+                                 center: .center, startRadius: 0, endRadius: size / 2))
             .frame(width: size, height: size)
-            .blur(radius: blur)
             .offset(x: x, y: y)
+    }
+}
+
+/// Weicher Lichtschein ohne Blur-Filter (Radialverlauf) – Ersatz für teure .shadow/.blur-Glows.
+struct Glow: View {
+    var color: Color
+    var opacity: Double = 0.6
+
+    var body: some View {
+        GeometryReader { geo in
+            let radius = max(geo.size.width, geo.size.height) / 2
+            Ellipse()
+                .fill(RadialGradient(colors: [color.opacity(opacity), color.opacity(opacity * 0.35), color.opacity(0)],
+                                     center: .center, startRadius: 0, endRadius: radius))
+        }
+        .allowsHitTesting(false)
     }
 }
 
@@ -234,7 +260,6 @@ private struct BuildIn: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(revealed ? 1 : 0)
-            .blur(radius: revealed ? 0 : 12)
             .offset(y: revealed ? 0 : rise)
             .scaleEffect(revealed ? 1 : 0.97)
             .animation(.spring(response: 0.75, dampingFraction: 0.86).delay(revealed ? delay : 0), value: revealed)

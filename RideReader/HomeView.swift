@@ -11,7 +11,6 @@ struct HomeView: View {
     @State private var webLink: WebLink?
     @State private var showNotConnected = false
     @State private var showHealthy = false
-    @State private var showDPF = false
 
     private var finished: Bool {
         if case .finished = scanner.phase { return true }
@@ -35,18 +34,8 @@ struct HomeView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Hintergrund – wird unscharf, sobald Fehler gefunden wurden
-            AmbientBackground(tint: stateTint)
-                .blur(radius: showFaults ? 22 : 0)
-                .scaleEffect(showFaults ? 1.1 : 1)
-
-            if showFaults {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.55)
-                    .ignoresSafeArea()
-                    .transition(.opacity)
-            }
+            // Hintergrund – tritt weich und abgedunkelt zurück, sobald Fehler gefunden wurden
+            AmbientBackground(tint: stateTint, dimmed: showFaults)
 
             ScrollView {
                 VStack(spacing: 22) {
@@ -93,9 +82,6 @@ struct HomeView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: showFaults)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: clearTarget)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: scanner.clearMessage)
-        .sheet(isPresented: $showDPF) {
-            DPFView()
-        }
         .sheet(item: $webLink) { link in
             WebSheet(url: link.url)
                 .ignoresSafeArea()
@@ -194,14 +180,13 @@ struct HomeView: View {
     private var dpfTile: some View {
         Button {
             Haptics.tap()
-            showDPF = true
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .dpf }
         } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle().fill(LinearGradient(colors: [Theme.violet.opacity(0.35), Theme.magenta.opacity(0.2)],
                                                  startPoint: .topLeading, endPoint: .bottomTrailing))
-                    Image(systemName: "aqi.medium")
-                        .font(.system(size: 20, weight: .bold))
+                    DPFLampIcon(size: 24)
                         .foregroundStyle(Theme.brandGradient)
                 }
                 .frame(width: 46, height: 46)
@@ -266,7 +251,7 @@ struct HomeView: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 34, weight: .bold))
                 .foregroundStyle(Theme.ok)
-                .shadow(color: Theme.ok.opacity(0.7), radius: 10)
+                .background(Glow(color: Theme.ok, opacity: 0.5).frame(width: 70, height: 70))
             VStack(alignment: .leading, spacing: 4) {
                 Text("Alles im grünen Bereich")
                     .font(Theme.rounded(18, weight: .bold))
@@ -294,7 +279,8 @@ struct HomeView: View {
                     ecu: result.address,
                     isClearing: scanner.clearingAddress == result.address,
                     onClear: { clearTarget = .ecu(result.address, result.name) },
-                    onWeb: { webLink = WebLink(url: $0) })
+                    onWeb: { webLink = WebLink(url: $0) },
+                    onDPF: openDPF)
             }
 
             if !scanner.obdCodes.isEmpty {
@@ -305,7 +291,8 @@ struct HomeView: View {
                     ecu: nil,
                     isClearing: scanner.clearingAddress == FaultScanner.obdAddress,
                     onClear: { clearTarget = .obd },
-                    onWeb: { webLink = WebLink(url: $0) })
+                    onWeb: { webLink = WebLink(url: $0) },
+                    onDPF: openDPF)
             }
 
             healthyList
@@ -351,8 +338,7 @@ struct HomeView: View {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text("\(all.count)")
                     .font(Theme.display(64))
-                    .foregroundStyle(Theme.color(worst))
-                    .shadow(color: Theme.color(worst).opacity(0.6), radius: 16)
+                    .foregroundStyle(LinearGradient(colors: [.white, Theme.color(worst)], startPoint: .top, endPoint: .center))
                     .contentTransition(.numericText())
                 VStack(alignment: .leading, spacing: 2) {
                     Text(all.count == 1 ? "Fehler gefunden" : "Fehler gefunden")
@@ -434,6 +420,10 @@ struct HomeView: View {
         .opacity(healthy.isEmpty ? 0 : 1)
     }
 
+    private func openDPF() {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .dpf }
+    }
+
     // MARK: - Löschen
 
     private func includesSevere(_ target: ClearTarget) -> Bool {
@@ -478,13 +468,21 @@ struct ControlOrb: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Leuchten
-                Circle()
-                    .fill(AngularGradient(colors: ringColors, center: .center))
-                    .blur(radius: 40)
-                    .opacity(breathe ? 0.7 : 0.4)
-                    .scaleEffect(breathe ? 1.06 : 0.94)
-                    .rotationEffect(.degrees(spin ? 360 : 0))
+                // Leuchten: drei weiche Farbflecken (Radialverläufe statt Blur), drehen sich mit dem Ring
+                ZStack {
+                    Glow(color: ringColors[0], opacity: 0.5)
+                        .frame(width: diameter * 1.1, height: diameter * 1.1)
+                        .offset(x: -diameter * 0.12, y: -diameter * 0.1)
+                    Glow(color: ringColors[2], opacity: 0.45)
+                        .frame(width: diameter * 1.1, height: diameter * 1.1)
+                        .offset(x: diameter * 0.14, y: -diameter * 0.02)
+                    Glow(color: ringColors[3], opacity: 0.4)
+                        .frame(width: diameter * 1.1, height: diameter * 1.1)
+                        .offset(x: -diameter * 0.02, y: diameter * 0.14)
+                }
+                .opacity(breathe ? 1 : 0.6)
+                .scaleEffect(breathe ? 1.05 : 0.95)
+                .rotationEffect(.degrees(spin ? 360 : 0))
 
                 // Verlaufsring
                 Circle()
@@ -507,12 +505,11 @@ struct ControlOrb: View {
                     .rotationEffect(.degrees(spin ? -360 : 0))
 
                 // Kreisender Lichtpunkt auf dem Ring
-                Circle()
-                    .fill(.white)
-                    .frame(width: 7, height: 7)
-                    .shadow(color: Theme.accent, radius: 6)
-                    .shadow(color: Theme.violet, radius: 12)
-                    .offset(y: -(diameter / 2 - 1.75))
+                ZStack {
+                    Glow(color: Theme.accent, opacity: 0.9).frame(width: 30, height: 30)
+                    Circle().fill(.white).frame(width: 7, height: 7)
+                }
+                .offset(y: -(diameter / 2 - 1.75))
                     .rotationEffect(.degrees(spin ? 360 : 0))
 
                 VStack(spacing: 8) {
@@ -544,21 +541,24 @@ struct ControlOrb: View {
 }
 
 /// Glanzstreifen, der regelmäßig über einen Knopf läuft.
+/// Läuft als eine einzige Core-Animation (kein Neuaufbau der Ansicht pro Bild).
 struct Shimmer: View {
+    @State private var move = false
+
     var body: some View {
-        TimelineView(.animation) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            let phase = fmod(t, 3.2) / 1.2
-            GeometryReader { geo in
-                LinearGradient(colors: [.clear, .white.opacity(0.55), .clear], startPoint: .leading, endPoint: .trailing)
-                    .frame(width: geo.size.width * 0.35)
-                    .rotationEffect(.degrees(18))
-                    .offset(x: -geo.size.width * 0.4 + geo.size.width * 1.8 * min(phase, 1))
-                    .opacity(phase < 1 ? 1 : 0)
-            }
+        GeometryReader { geo in
+            let w = geo.size.width
+            LinearGradient(colors: [.clear, .white.opacity(0.55), .clear], startPoint: .leading, endPoint: .trailing)
+                .frame(width: w * 0.35)
+                .rotationEffect(.degrees(18))
+                // Weg ist viel länger als der Knopf → nach dem Durchlauf ~2 s Pause, ohne Timer
+                .offset(x: move ? w * 3.2 : -w * 0.5)
         }
+        .clipped()
         .allowsHitTesting(false)
-        .blendMode(.overlay)
+        .onAppear {
+            withAnimation(.linear(duration: 3.2).repeatForever(autoreverses: false)) { move = true }
+        }
     }
 }
 
@@ -573,7 +573,6 @@ struct ConnectionChip: View {
             Circle()
                 .fill(color)
                 .frame(width: 8, height: 8)
-                .shadow(color: color, radius: 5)
             Text(session.isInitialized ? "Verbunden" : ble.status == .idle ? "Nicht verbunden" : ble.status.text)
                 .font(Theme.rounded(12, weight: .bold))
                 .lineLimit(1)
@@ -668,7 +667,6 @@ struct Toast: View {
         }
         .padding(14)
         .frosted(cornerRadius: 20)
-        .shadow(color: .black.opacity(0.4), radius: 16, y: 8)
     }
 }
 
@@ -679,7 +677,7 @@ struct CountChip: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 7, height: 7).shadow(color: color, radius: 4)
+            Circle().fill(color).frame(width: 7, height: 7)
             Text("\(count) \(label)")
         }
         .font(Theme.rounded(13, weight: .bold))

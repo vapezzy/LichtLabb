@@ -132,15 +132,16 @@ struct IntroView: View {
                         .frame(width: w * 0.32, height: w * 0.32)
                         .scaleEffect(0.2 + 4.2 * Motion.expoOut(p))
                         .opacity(p > 0 && p < 1 ? (1 - p) * 0.9 : 0)
-                        .blur(radius: 1.5 * p)
                         .position(center)
                 }
 
-                // Splitter, Risse, Funken
+                // Splitter, Risse, Funken (nur solange sichtbar)
+                if d > 0 && d < 1.8 {
                 BreakthroughBurst(d: d)
                     .frame(width: w, height: h)
                     .position(x: w / 2, y: h / 2 + (center.y - h / 2))
                     .allowsHitTesting(false)
+                }
 
                 // Kleine Oberzeile
                 Text("AUTOMOTIVE DIAGNOSTICS")
@@ -162,15 +163,15 @@ struct IntroView: View {
                     .foregroundStyle(LinearGradient(colors: [.white.opacity(0.85), Theme.accent.opacity(0.9)],
                                                     startPoint: .leading, endPoint: .trailing))
                     .opacity(Motion.ease(t, 2.05, 2.55) * (1 - reveal))
-                    .blur(radius: 8 * (1 - Motion.ease(t, 2.05, 2.55)))
                     .position(x: center.x, y: center.y + size * 1.45 + 10 * CGFloat(1 - Motion.ease(t, 2.05, 2.55)))
 
-                // Weißer Blitz beim Durchbruch
-                Color.white
-                    .opacity(d > 0 ? 0.6 * exp(-9 * d) : 0)
-                    .blendMode(.screen)
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
+                // Weißer Blitz beim Durchbruch (normale Deckkraft – Blend-Modi kosten einen Extra-Durchgang)
+                if d > 0 && d < 0.6 {
+                    Color.white
+                        .opacity(0.5 * exp(-9 * d))
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                }
 
                 Text("Tippen zum Überspringen")
                     .font(.caption2.weight(.medium))
@@ -184,18 +185,23 @@ struct IntroView: View {
 
     // MARK: - Bausteine
 
-    /// Rotierender, stark weichgezeichneter Markenverlauf hinter dem Schriftzug.
+    /// Polarlicht hinter dem Schriftzug: drei weiche Farbflecken (Radialverläufe, kein Blur), die langsam kreisen.
     private func aurora(t: Double, w: CGFloat, bloom: Double) -> some View {
         ZStack {
-            Circle()
-                .fill(AngularGradient(colors: Theme.brandLoop, center: .center))
-                .frame(width: w * 1.25, height: w * 1.25)
-                .rotationEffect(.degrees(t * 35))
-                .blur(radius: 90)
-                .opacity(0.5 * bloom)
-            Ellipse()
-                .fill(RadialGradient(colors: [Theme.accent.opacity(0.55), .clear], center: .center,
-                                     startRadius: 0, endRadius: w * 0.5))
+            ZStack {
+                Glow(color: Theme.accent, opacity: 0.55)
+                    .frame(width: w * 1.1, height: w * 1.1)
+                    .offset(x: -w * 0.22, y: -w * 0.08)
+                Glow(color: Theme.violet, opacity: 0.55)
+                    .frame(width: w * 1.1, height: w * 1.1)
+                    .offset(x: w * 0.24, y: -w * 0.02)
+                Glow(color: Theme.magenta, opacity: 0.4)
+                    .frame(width: w * 1.0, height: w * 1.0)
+                    .offset(x: 0, y: w * 0.2)
+            }
+            .rotationEffect(.degrees(t * 35))
+            .opacity(0.8 * bloom)
+            Glow(color: Theme.accent, opacity: 0.5)
                 .frame(width: w * 1.1, height: w * 0.45)
                 .opacity(Motion.ease(t, 0.3, 1.2) * (1 - 0.5 * bloom))
         }
@@ -206,13 +212,18 @@ struct IntroView: View {
         let grow = Motion.expoOut(Motion.progress(t, 0.1, 1.0))
         let shoot = Motion.expoOut(Motion.progress(t, Self.impact, Self.impact + 0.7))
         let width = w * (0.62 * grow + 0.8 * shoot)
-        return Capsule()
-            .fill(LinearGradient(colors: [.clear, Theme.accent, .white, Theme.magenta, .clear],
-                                 startPoint: .leading, endPoint: .trailing))
-            .frame(width: width, height: 1.4 + 1.2 * (1 - shoot))
-            .shadow(color: Theme.accent, radius: 8)
-            .shadow(color: Theme.violet.opacity(0.8), radius: 18)
-            .opacity(1 - shoot * 0.85)
+        return ZStack {
+            // Schein: breite, transparente Kapsel statt Schatten
+            Capsule()
+                .fill(LinearGradient(colors: [.clear, Theme.accent.opacity(0.35), Theme.violet.opacity(0.35), .clear],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(width: width, height: 14)
+            Capsule()
+                .fill(LinearGradient(colors: [.clear, Theme.accent, .white, Theme.magenta, .clear],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(width: width, height: 1.4 + 1.2 * (1 - shoot))
+        }
+        .opacity(1 - shoot * 0.85)
     }
 
     /// Schriftzug mit chromatischen Geistern, Erblühen in den Markenverlauf und Glanzlauf.
@@ -227,46 +238,47 @@ struct IntroView: View {
         let sheen = Motion.progress(t, 2.15, 3.0)
 
         return ZStack {
-            // Glut hinter den Buchstaben
-            Capsule()
-                .fill(LinearGradient(colors: Theme.brandColors, startPoint: .leading, endPoint: .trailing))
-                .frame(width: size * 9, height: size * 1.1)
-                .blur(radius: 34)
-                .opacity(0.55 * bloom)
+            // Glut hinter den Buchstaben (Radialverlauf statt Blur)
+            Glow(color: Theme.violet, opacity: 0.55)
+                .frame(width: size * 9, height: size * 2.6)
+                .opacity(bloom)
 
-            LogoLetters(size: size, t: t)
-                .foregroundStyle(Theme.magenta)
-                .offset(x: split)
-                .blendMode(.screen)
-                .opacity(split > 0.5 ? 0.85 : 0)
-            LogoLetters(size: size, t: t)
-                .foregroundStyle(Theme.accent)
-                .offset(x: -split)
-                .blendMode(.screen)
-                .opacity(split > 0.5 ? 0.85 : 0)
+            // Chromatische Geister – nur solange sie auseinanderliegen
+            if split > 0.5 {
+                LogoLetters(size: size, t: t)
+                    .foregroundStyle(Theme.magenta.opacity(0.55))
+                    .offset(x: split)
+                LogoLetters(size: size, t: t)
+                    .foregroundStyle(Theme.accent.opacity(0.55))
+                    .offset(x: -split)
+            }
 
             // Hauptschrift: vor dem Einschlag silbern, danach Markenverlauf
-            LogoMark(size: size, t: t)
-                .opacity(bloom)
-            LogoLetters(size: size, t: t)
-                .foregroundStyle(LinearGradient(colors: [.white, Color(white: 0.72)], startPoint: .top, endPoint: .bottom))
-                .opacity(1 - bloom)
+            if bloom > 0 {
+                LogoMark(size: size, t: t)
+                    .opacity(bloom)
+            }
+            if bloom < 1 {
+                LogoLetters(size: size, t: t)
+                    .foregroundStyle(LinearGradient(colors: [.white, Color(white: 0.72)], startPoint: .top, endPoint: .bottom))
+                    .opacity(1 - bloom)
+            }
 
-            // Glanz, der über den Schriftzug läuft
-            LogoLetters(size: size, t: t)
-                .opacity(0)
-                .overlay {
-                    GeometryReader { geo in
-                        LinearGradient(colors: [.clear, .white.opacity(0.95), .clear], startPoint: .leading, endPoint: .trailing)
-                            .frame(width: geo.size.width * 0.25)
-                            .offset(x: -geo.size.width * 0.3 + geo.size.width * 1.6 * Motion.easeInOut(sheen))
+            // Glanz, der über den Schriftzug läuft – nur während des Durchlaufs
+            if sheen > 0 && sheen < 1 {
+                LogoLetters(size: size)
+                    .opacity(0)
+                    .overlay {
+                        GeometryReader { geo in
+                            LinearGradient(colors: [.clear, .white.opacity(0.95), .clear], startPoint: .leading, endPoint: .trailing)
+                                .frame(width: geo.size.width * 0.25)
+                                .offset(x: -geo.size.width * 0.3 + geo.size.width * 1.6 * Motion.easeInOut(sheen))
+                        }
+                        .mask { LogoLetters(size: size) }
                     }
-                    .mask { LogoLetters(size: size, t: t) }
-                }
-                .opacity(sheen > 0 && sheen < 1 ? 1 : 0)
+            }
         }
         .scaleEffect(punch)
-        .shadow(color: Theme.violet.opacity(0.5 * bloom), radius: 20)
     }
 }
 
@@ -287,7 +299,7 @@ struct LogoLetters: View {
                     .font(Theme.display(size, weight: .heavy))
                     .italic()
                     .offset(y: size * 1.35 * CGFloat(1 - e))
-                    .blur(radius: 5 * CGFloat(1 - p))
+                    .opacity(0.25 + 0.75 * p)
             }
         }
         .padding(.horizontal, size * 0.3)
@@ -338,16 +350,12 @@ struct BreakthroughBurst: View {
                         cracks.addLine(to: pt)
                     }
                 }
-                ctx.stroke(cracks, with: .color(.white.opacity(0.75 * crackFade)), lineWidth: 1)
-                var glow = ctx
-                glow.addFilter(.blur(radius: 4))
-                glow.stroke(cracks, with: .color(Theme.accent.opacity(0.8 * crackFade)), lineWidth: 2.5)
+                ctx.stroke(cracks, with: .color(Theme.accent.opacity(0.3 * crackFade)), lineWidth: 5)
+                ctx.stroke(cracks, with: .color(.white.opacity(0.8 * crackFade)), lineWidth: 1)
             }
 
-            // Splitter und Funken als Lichtstreifen
-            var glow = ctx
-            glow.addFilter(.blur(radius: 3))
-            for i in 0..<60 {
+            // Splitter und Funken als Lichtstreifen (Schein = breiter, transparenter Strich statt Blur)
+            for i in 0..<48 {
                 let angle = rand(i) * .pi * 2
                 let speed = 220 + 560 * rand(i + 100)
                 let lifetime = 0.8 + 0.8 * rand(i + 200)
@@ -362,8 +370,9 @@ struct BreakthroughBurst: View {
                 streak.addLine(to: CGPoint(x: pos.x - dir.x * tail, y: pos.y - dir.y * tail))
                 let color = colors[i % colors.count].opacity(1 - life)
                 let width = CGFloat(1 + 2.2 * rand(i + 300))
+                ctx.stroke(streak, with: .color(colors[i % colors.count].opacity(0.25 * (1 - life))),
+                           style: StrokeStyle(lineWidth: width * 3, lineCap: .round))
                 ctx.stroke(streak, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
-                glow.stroke(streak, with: .color(color), style: StrokeStyle(lineWidth: width * 2.5, lineCap: .round))
 
                 // jeder vierte ist ein kleiner, rotierender Glassplitter
                 if i % 4 == 0 {
@@ -381,7 +390,6 @@ struct BreakthroughBurst: View {
                 }
             }
         }
-        .blendMode(.screen)
     }
 
     /// Feste Pseudo-Zufallszahl 0…1 je Index (gleiches Bild bei jedem Durchlauf).

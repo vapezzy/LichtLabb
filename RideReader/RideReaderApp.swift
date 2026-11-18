@@ -39,10 +39,24 @@ enum LaunchOptions {
 }
 
 enum AppTab: String, CaseIterable {
-    case home, settings
+    case home, dpf, settings
 
-    var title: String { self == .home ? "Zuhause" : "Einstellungen" }
-    var icon: String { self == .home ? "house.fill" : "gearshape.fill" }
+    var title: String {
+        switch self {
+        case .home: return "Zuhause"
+        case .dpf: return "DPF"
+        case .settings: return "Einstellungen"
+        }
+    }
+
+    /// SF-Symbol; der DPF-Tab nutzt stattdessen die gezeichnete Kontrollleuchte
+    var icon: String? {
+        switch self {
+        case .home: return "house.fill"
+        case .dpf: return nil
+        case .settings: return "gearshape.fill"
+        }
+    }
 }
 
 struct RootView: View {
@@ -58,7 +72,7 @@ struct RootView: View {
         let intro = shot == nil || shot == "intro"
         _showIntro = State(initialValue: intro)
         _revealed = State(initialValue: !intro)
-        _tab = State(initialValue: shot == "settings" ? .settings : .home)
+        _tab = State(initialValue: shot == "settings" ? .settings : shot == "dpf" ? .dpf : .home)
     }
 
     var body: some View {
@@ -67,6 +81,9 @@ struct RootView: View {
                 switch tab {
                 case .home:
                     HomeView(tab: $tab)
+                        .transition(.blurFade)
+                case .dpf:
+                    DPFView(showsClose: false)
                         .transition(.blurFade)
                 case .settings:
                     SettingsTab(tab: $tab, replayIntro: replayIntro)
@@ -79,6 +96,8 @@ struct RootView: View {
                     .buildIn(7, rise: 40)
             }
             .environment(\.pageRevealed, revealed)
+            // Während Kontrolle/Löschen ist alles darunter verdeckt – nicht weiter animieren und zeichnen
+            .opacity(scanner.isBusy ? 0 : 1)
 
             if scanner.isBusy {
                 ScanOverlay()
@@ -119,45 +138,56 @@ struct RootView: View {
     }
 }
 
-/// Schwebende Tab-Leiste aus Milchglas; die Markierung gleitet zwischen den Tabs.
+/// Schwebende Tab-Leiste; die Markierung gleitet zwischen den Tabs, der Name steht nur beim aktiven Tab.
 struct TabBar: View {
     @Binding var tab: AppTab
     @Namespace private var namespace
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(AppTab.allCases, id: \.self) { item in
+                let selected = tab == item
                 Button {
-                    guard tab != item else { return }
+                    guard !selected else { return }
                     Haptics.tap()
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = item }
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) { tab = item }
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: item.icon)
-                            .font(.system(size: 15, weight: .bold))
-                        Text(item.title)
-                            .font(Theme.rounded(14, weight: .bold))
+                        if let icon = item.icon {
+                            Image(systemName: icon)
+                                .font(.system(size: 16, weight: .bold))
+                                .frame(width: 22, height: 22)
+                        } else {
+                            DPFLampIcon(size: 22)
+                        }
+                        if selected {
+                            Text(item.title)
+                                .font(Theme.rounded(14, weight: .bold))
+                                .lineLimit(1)
+                                .fixedSize()
+                                .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .leading)))
+                        }
                     }
-                    .foregroundStyle(tab == item ? Color.white : .white.opacity(0.6))
-                    .padding(.horizontal, 18)
+                    .foregroundStyle(selected ? Color.white : .white.opacity(0.6))
+                    .padding(.horizontal, selected ? 18 : 16)
                     .padding(.vertical, 12)
                     .background {
-                        if tab == item {
+                        if selected {
                             Capsule()
                                 .fill(LinearGradient(colors: [Theme.accentDeep, Theme.violet, Theme.magenta.opacity(0.9)],
                                                      startPoint: .leading, endPoint: .trailing))
                                 .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
-                                .shadow(color: Theme.violet.opacity(0.6), radius: 14)
                                 .matchedGeometryEffect(id: "pill", in: namespace)
                         }
                     }
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(PressableStyle())
+                .accessibilityLabel(item.title)
             }
         }
         .padding(6)
         .frosted(cornerRadius: 32)
-        .shadow(color: .black.opacity(0.45), radius: 20, y: 10)
     }
 }
 
@@ -168,10 +198,14 @@ struct ScanOverlay: View {
     var body: some View {
         let scanning = scanner.phase == .scanning
         ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay(Theme.background.opacity(0.55))
-                .ignoresSafeArea()
+            // Deckender Hintergrund statt Live-Blur: spart in jedem Bild einen Weichzeichner über den ganzen Bildschirm
+            ZStack {
+                Theme.background
+                Glow(color: scanning ? Theme.violet : Theme.ok, opacity: 0.22)
+                    .frame(width: 700, height: 700)
+                    .offset(y: -120)
+            }
+            .ignoresSafeArea()
 
             VStack(spacing: 18) {
                 Spacer()

@@ -197,15 +197,6 @@ struct SettingsTab: View {
                     row("Diagnose-Konsole", icon: "terminal.fill", detail: "Befehle & Protokoll")
                 }
                 Divider().overlay(.white.opacity(0.08))
-                NavigationLink {
-                    DPFView()
-                        #if os(iOS)
-                        .toolbar(.hidden, for: .navigationBar)
-                        #endif
-                } label: {
-                    row("Rußfilter", icon: "aqi.medium", detail: "Live-Werte")
-                }
-                Divider().overlay(.white.opacity(0.08))
                 Button {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .home }
                     scanner.runDemoScan()
@@ -279,32 +270,35 @@ struct SettingsTab: View {
     }
 }
 
-/// Pulsierender Status-Punkt mit Wellenringen während der Suche.
+/// Pulsierender Status-Punkt mit Wellenringen während der Suche (Core-Animation statt Bild-für-Bild).
 struct StatusOrb: View {
     var color: Color
     var active: Bool
 
+    @State private var wave = false
+
     var body: some View {
-        TimelineView(.animation) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            ZStack {
-                if active {
-                    ForEach(0..<3) { i in
-                        let p = fmod(t * 0.8 + Double(i) / 3, 1)
-                        Circle()
-                            .strokeBorder(color.opacity(1 - p), lineWidth: 2)
-                            .scaleEffect(0.4 + 0.6 * p)
-                    }
+        ZStack {
+            if active {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .strokeBorder(color, lineWidth: 2)
+                        .scaleEffect(wave ? 1 : 0.4)
+                        .opacity(wave ? 0 : 1)
+                        .animation(.easeOut(duration: 1.25).repeatForever(autoreverses: false).delay(Double(i) * 0.42),
+                                   value: wave)
                 }
-                Circle()
-                    .fill(RadialGradient(colors: [color, color.opacity(0.3)], center: .center, startRadius: 0, endRadius: 18))
-                    .frame(width: 26, height: 26)
-                    .shadow(color: color, radius: 10 + 4 * sin(t * 3))
-                Image(systemName: "cable.connector")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.black.opacity(0.7))
             }
+            Glow(color: color, opacity: 0.6)
+                .frame(width: 58, height: 58)
+            Circle()
+                .fill(RadialGradient(colors: [color, color.opacity(0.3)], center: .center, startRadius: 0, endRadius: 18))
+                .frame(width: 26, height: 26)
+            Image(systemName: "cable.connector")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.black.opacity(0.7))
         }
+        .onAppear { wave = true }
     }
 }
 

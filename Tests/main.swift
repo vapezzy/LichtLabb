@@ -207,6 +207,16 @@ func run() async {
     DPFMonitor.apply(pid: 0x0C, data: [0x0C, 0xD0], to: &dpfReading)
     check(dpfReading.rpm == 820, "Drehzahl 820 U/min")
 
+    print("DPF-Fehler erkennen")
+    let soot = FaultCatalog.info(for: FaultCode(code: "P2463", status: 0x08, isOBD: true), ecu: nil)
+    check(soot.isDPF && soot.area == "Rußfilter", "P2463 → Rußfilter, DPF-Knopf")
+    let egt = FaultCatalog.info(for: FaultCode(code: "P0545", status: 0x08, isOBD: true), ecu: nil)
+    check(egt.isDPF, "P0545 Abgastemperatursensor → DPF-Knopf")
+    let range = FaultCatalog.info(for: FaultCode(code: "P2457", status: 0x08, isOBD: true), ecu: nil)
+    check(range.isDPF && range.area == "Rußfilter", "unbekannter P245x → Rußfilter")
+    let catalyst = FaultCatalog.info(for: FaultCode(code: "P0420", status: 0x08, isOBD: true), ecu: nil)
+    check(!catalyst.isDPF, "P0420 Katalysator → normaler Web-Knopf")
+
     print(failures == 0 ? "\nAlle Tests bestanden." : "\n\(failures) Test(s) fehlgeschlagen.")
     exit(failures == 0 ? 0 : 1)
 }
