@@ -21,8 +21,8 @@ jobs:
         run: |
           xcodebuild -version
           xcodebuild \
-            -project LichtLab.xcodeproj \
-            -target LichtLab \
+            -project RideReader.xcodeproj \
+            -target RideReader \
             -configuration Release \
             -sdk iphoneos \
             SYMROOT="$PWD/build" \
@@ -39,20 +39,59 @@ jobs:
         run: |
           brew install ldid
           mkdir -p Payload
-          cp -R build/Release-iphoneos/LichtLab.app Payload/
+          cp -R build/Release-iphoneos/RideReader.app Payload/
           # Pseudo-Signatur, TrollStore ersetzt sie bei der Installation
-          ldid -S Payload/LichtLab.app/LichtLab
-          zip -qry LichtLab.ipa Payload
+          ldid -S Payload/RideReader.app/RideReader
+          zip -qry RideReader.ipa Payload
+
+      - name: Screenshots im Simulator
+        continue-on-error: true
+        run: |
+          mkdir -p shots
+          xcodebuild -project RideReader.xcodeproj -target RideReader -configuration Debug \
+            -sdk iphonesimulator SYMROOT="$PWD/simbuild" ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO build > sim.log 2>&1 || { tail -30 sim.log; exit 1; }
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = [d for runtime, ds in json.load(sys.stdin)["devices"].items() if "iOS" in runtime for d in ds]
+          phones = [d for d in devices if d["name"].startswith("iPhone")]
+          pro = [d for d in phones if "Pro" in d["name"] and "Max" not in d["name"]]
+          print((pro or phones)[-1]["udid"])')
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 || true
+          xcrun simctl install "$UDID" simbuild/Debug-iphonesimulator/RideReader.app
+          shot() {
+            name=$1; wait=$2; shift 2
+            xcrun simctl terminate "$UDID" local.ridereader.app 2>/dev/null || true
+            xcrun simctl launch "$UDID" local.ridereader.app "$@"
+            sleep "$wait"
+            xcrun simctl io "$UDID" screenshot "shots/$name.png"
+          }
+          shot 0-warmup 8 -shot home
+          shot 1-intro-a 4 -shot intro -introTime 0.9
+          shot 2-intro-b 4 -shot intro -introTime 1.6
+          shot 3-intro-c 4 -shot intro -introTime 2.45
+          shot 4-intro-d 4 -shot intro -introTime 3.5
+          shot 5-zuhause 5 -shot home
+          shot 6-kontrolle 6 -shot loading
+          shot 7-fehler 5 -shot results
+          shot 8-loeschen 5 -shot clear
+          shot 9-einstellungen 5 -shot settings
+          rm -f shots/0-warmup.png
+          ls -la shots
 
       - uses: actions/upload-artifact@v4
         with:
-          name: LichtLab-ipa
-          path: LichtLab.ipa
+          name: RideReader-ipa
+          path: RideReader.ipa
 
       - name: Als Release veröffentlichen
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: LichtLab Build ${{ github.run_number }}
-          files: LichtLab.ipa
+          name: RideReader Build ${{ github.run_number }}
+          files: |
+            RideReader.ipa
+            shots/*.png
           make_latest: true

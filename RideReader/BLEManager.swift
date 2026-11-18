@@ -58,9 +58,12 @@ final class BLEManager: NSObject, ObservableObject, ELMTransport {
     private static let preferredServices: Set<CBUUID> = [CBUUID(string: "18F0"), CBUUID(string: "FFF0"), CBUUID(string: "FFE0")]
     private static let ignoredServices: Set<CBUUID> = [CBUUID(string: "1800"), CBUUID(string: "1801"), CBUUID(string: "180A"), CBUUID(string: "180F")]
 
-    override init() {
+    /// `startBluetooth: false` nur für automatische Screenshots (keine Bluetooth-Abfrage im Simulator).
+    init(startBluetooth: Bool = true) {
         super.init()
-        central = CBCentralManager(delegate: self, queue: .main)
+        if startBluetooth {
+            central = CBCentralManager(delegate: self, queue: .main)
+        }
     }
 
     func startScan() {

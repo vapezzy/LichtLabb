@@ -1,0 +1,608 @@
+import SwiftUI
+
+/// Tab „Zuhause“: Auto, Kontrolle-Knopf und – nach der Kontrolle – die gefundenen Fehler.
+struct HomeView: View {
+    @EnvironmentObject private var ble: BLEManager
+    @EnvironmentObject private var session: ELMSession
+    @EnvironmentObject private var scanner: FaultScanner
+    @Binding var tab: AppTab
+
+    @State private var clearTarget: ClearTarget?
+    @State private var webLink: WebLink?
+    @State private var showNotConnected = false
+    @State private var showHealthy = false
+
+    private var finished: Bool {
+        if case .finished = scanner.phase { return true }
+        return false
+    }
+
+    private var showFaults: Bool { finished && scanner.totalFaults > 0 }
+
+    /// Schwerster Fehler über alle Steuergeräte und OBD-II
+    private var worst: Severity? {
+        let ecu = scanner.results.compactMap { FaultCatalog.worst($0.faults, ecu: $0.address) }.max()
+        let obd = FaultCatalog.worst(scanner.obdCodes, ecu: nil)
+        return [ecu, obd].compactMap { $0 }.max()
+    }
+
+    private var stateTint: Color {
+        if showFaults { return Theme.color(worst) }
+        if finished && scanner.abortReason == nil { return Theme.ok }
+        return Theme.accent
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            AmbientBackground(tint: stateTint)
+
+            // Das Auto im Hintergrund – wird unscharf, sobald Fehler gefunden wurden
+            HeroCar(tint: stateTint)
+                .padding(.horizontal, 8)
+                .padding(.top, 150)
+                .blur(radius: showFaults ? 22 : 0)
+                .opacity(showFaults ? 0.5 : 1)
+                .scaleEffect(showFaults ? 1.12 : 1)
+                .allowsHitTesting(false)
+
+            if showFaults {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.55)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+                    if showFaults {
+                        faultsContent
+                            .transition(.blurRise)
+                    } else {
+                        Color.clear.frame(height: 190)
+                        startContent
+                            .transition(.blurRise)
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 30)
+            }
+            .scrollIndicators(.hidden)
+
+            if let message = scanner.clearMessage {
+                Toast(text: message, color: message.contains("wiedergekommen") || message.hasPrefix("Fehler") ? Theme.fault : Theme.ok)
+                    .padding(.top, 8)
+                    .padding(.horizontal, 18)
+                    .transition(.move(edge: .top).combined(with: .blurFade))
+                    .zIndex(3)
+                    .onTapGesture { scanner.clearMessage = nil }
+                    .task(id: message) {
+                        try? await Task.sleep(nanoseconds: 4_500_000_000)
+                        if scanner.clearMessage == message { scanner.clearMessage = nil }
+                    }
+            }
+
+            if let target = clearTarget {
+                ClearWarningPopup(target: target, includesSevere: includesSevere(target)) {
+                    clearTarget = nil
+                    Haptics.warning()
+                    Task { await perform(target) }
+                } onCancel: {
+                    clearTarget = nil
+                }
+                .transition(.blurFade)
+                .zIndex(4)
+            }
+        }
+        .foregroundStyle(.white)
+        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: showFaults)
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: clearTarget)
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: scanner.clearMessage)
+        .sheet(item: $webLink) { link in
+            WebSheet(url: link.url)
+                .ignoresSafeArea()
+        }
+        .onAppear {
+            if LaunchOptions.shot == "clear" { clearTarget = .all }
+        }
+        .onChange(of: scanner.phase) { phase in
+            if case .finished = phase {
+                scanner.totalFaults > 0 ? Haptics.warning() : Haptics.confirm()
+            }
+        }
+    }
+
+    // MARK: - Kopf
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                HStack(spacing: 0) {
+                    Text("RIDE").foregroundStyle(.white)
+                    Text("READER").foregroundStyle(Theme.accent)
+                }
+                .font(Theme.display(17))
+                .italic()
+                Spacer()
+                ConnectionChip()
+                    .onTapGesture {
+                        Haptics.tap()
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .settings }
+                    }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Zuhause")
+                    .font(Theme.display(36))
+                Text(greeting)
+                    .font(Theme.rounded(16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .animation(.easeInOut, value: greeting)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var greeting: String {
+        if showFaults {
+            return worst == .severe ? "Uff. Die Crew hat was Ernstes gefunden." : "Die Crew hat was gefunden."
+        }
+        if finished && scanner.abortReason == nil { return "Alles sauber. Die Crew macht Kaffeepause." }
+        return "Na, wie geht's der Karre heute?"
+    }
+
+    // MARK: - Start
+
+    private var startContent: some View {
+        VStack(spacing: 14) {
+            if let reason = scanner.abortReason {
+                InfoCard(icon: "exclamationmark.triangle.fill", color: Theme.fault,
+                         title: "Kontrolle abgebrochen", text: reason)
+            }
+
+            if finished && scanner.abortReason == nil {
+                allGoodCard
+            }
+
+            controlButton
+
+            if showNotConnected && !session.isInitialized {
+                notConnectedCard
+                    .transition(.blurRise)
+            }
+
+            ModePicker(mode: $scanner.mode)
+        }
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: showNotConnected)
+    }
+
+    /// Der große „Kontrolle“-Knopf mit laufendem Glanz.
+    private var controlButton: some View {
+        Button {
+            Haptics.tap()
+            if session.isInitialized {
+                showNotConnected = false
+                scanner.start()
+            } else {
+                showNotConnected = true
+            }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(.black.opacity(0.18))
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 22, weight: .bold))
+                }
+                .frame(width: 52, height: 52)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Kontrolle")
+                        .font(Theme.display(26))
+                    Text(finished ? "Nochmal alles durchchecken" : "Fehlerspeicher auslesen")
+                        .font(Theme.rounded(14, weight: .semibold))
+                        .opacity(0.7)
+                }
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 20, weight: .heavy))
+            }
+            .foregroundStyle(.black)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(LinearGradient(colors: [Theme.accent, Color(red: 0.55, green: 0.98, blue: 1)],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+            )
+            .overlay(Shimmer().clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous)))
+            .shadow(color: Theme.accent.opacity(0.5), radius: 22, y: 8)
+        }
+        .buttonStyle(PressableStyle())
+    }
+
+    private var notConnectedCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Kein OBD-Stecker verbunden", systemImage: "cable.connector.slash")
+                .font(Theme.rounded(16, weight: .bold))
+            Text("Die Crew braucht eine Leitung zum Auto. Verbinde den Adapter unter Einstellungen – oder schau dir erst eine Beispiel-Kontrolle an.")
+                .font(Theme.rounded(14, weight: .regular))
+                .foregroundStyle(.white.opacity(0.7))
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .settings }
+                } label: {
+                    Text("Verbinden")
+                        .font(Theme.rounded(14, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(Theme.accent))
+                }
+                Button {
+                    showNotConnected = false
+                    scanner.runDemoScan()
+                } label: {
+                    Text("Beispiel ansehen")
+                        .font(Theme.rounded(14, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Capsule().strokeBorder(.white.opacity(0.3)))
+                }
+            }
+            .buttonStyle(PressableStyle())
+        }
+        .padding(18)
+        .card(tint: Theme.accent)
+    }
+
+    private var allGoodCard: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundStyle(Theme.ok)
+                .shadow(color: Theme.ok.opacity(0.7), radius: 10)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Alles im grünen Bereich")
+                    .font(Theme.rounded(18, weight: .bold))
+                Text("\(scanner.results.count) Steuergeräte befragt – keins hat gemeckert.")
+                    .font(Theme.rounded(14, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .card(tint: Theme.ok)
+    }
+
+    // MARK: - Fehler
+
+    private var faultsContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            summaryCard
+
+            ForEach(faultyECUs) { result in
+                ECUSection(
+                    title: result.name,
+                    subtitle: result.hexAddress,
+                    faults: result.faults,
+                    ecu: result.address,
+                    isClearing: scanner.clearingAddress == result.address,
+                    onClear: { clearTarget = .ecu(result.address, result.name) },
+                    onWeb: { webLink = WebLink(url: $0) })
+            }
+
+            if !scanner.obdCodes.isEmpty {
+                ECUSection(
+                    title: "OBD-II · Motor & Abgas",
+                    subtitle: "genormt",
+                    faults: scanner.obdCodes,
+                    ecu: nil,
+                    isClearing: scanner.clearingAddress == FaultScanner.obdAddress,
+                    onClear: { clearTarget = .obd },
+                    onWeb: { webLink = WebLink(url: $0) })
+            }
+
+            healthyList
+
+            Button {
+                Haptics.tap()
+                clearTarget = .all
+            } label: {
+                Label("Alle Fehler löschen", systemImage: "eraser.fill")
+                    .font(Theme.rounded(16, weight: .bold))
+                    .foregroundStyle(Theme.color(worst))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(Theme.color(worst).opacity(0.12))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(Theme.color(worst).opacity(0.6), lineWidth: 1.2)
+                    )
+            }
+            .buttonStyle(PressableStyle())
+            .disabled(scanner.isBusy || faultyECUs.isEmpty)
+            .opacity(faultyECUs.isEmpty ? 0.4 : 1)
+        }
+    }
+
+    private var faultyECUs: [ECUResult] {
+        scanner.results
+            .filter { !$0.faults.isEmpty }
+            .sorted {
+                (FaultCatalog.worst($0.faults, ecu: $0.address) ?? .fault) > (FaultCatalog.worst($1.faults, ecu: $1.address) ?? .fault)
+            }
+    }
+
+    private var summaryCard: some View {
+        let all = scanner.results.flatMap { r in r.faults.map { FaultCatalog.info(for: $0, ecu: r.address) } }
+            + scanner.obdCodes.map { FaultCatalog.info(for: $0, ecu: nil) }
+        let severe = all.filter { $0.severity == .severe }.count
+        let normal = all.count - severe
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text("\(all.count)")
+                    .font(Theme.display(64))
+                    .foregroundStyle(Theme.color(worst))
+                    .shadow(color: Theme.color(worst).opacity(0.6), radius: 16)
+                    .contentTransition(.numericText())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(all.count == 1 ? "Fehler gefunden" : "Fehler gefunden")
+                        .font(Theme.rounded(18, weight: .bold))
+                    Text(scanner.isDemo ? "Beispieldaten" : "in \(faultyECUs.count + (scanner.obdCodes.isEmpty ? 0 : 1)) Bereichen")
+                        .font(Theme.rounded(13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            HStack(spacing: 8) {
+                if severe > 0 {
+                    CountChip(count: severe, label: "schwerwiegend", color: Theme.severe)
+                }
+                if normal > 0 {
+                    CountChip(count: normal, label: normal == 1 ? "Fehler" : "Fehler", color: Theme.fault)
+                }
+            }
+            HStack(spacing: 10) {
+                Button {
+                    Haptics.tap()
+                    scanner.reset()
+                } label: {
+                    Label("Neue Kontrolle", systemImage: "arrow.clockwise")
+                        .font(Theme.rounded(14, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(.white.opacity(0.1)))
+                }
+                ShareLink(item: scanner.reportText) {
+                    Label("Bericht", systemImage: "square.and.arrow.up")
+                        .font(Theme.rounded(14, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(.white.opacity(0.1)))
+                }
+            }
+            .buttonStyle(PressableStyle())
+        }
+        .padding(20)
+        .card(tint: Theme.color(worst))
+    }
+
+    private var healthyList: some View {
+        let healthy = scanner.results.filter { $0.faults.isEmpty }
+        return VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { showHealthy.toggle() }
+            } label: {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.ok)
+                    Text("\(healthy.count) Steuergeräte ohne Fehler")
+                        .font(Theme.rounded(15, weight: .semibold))
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(showHealthy ? 180 : 0))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+            .buttonStyle(.plain)
+            if showHealthy {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(healthy) { result in
+                        HStack {
+                            Text(result.name)
+                            Spacer()
+                            Text(result.error == nil ? result.hexAddress : "nicht lesbar")
+                                .foregroundStyle(result.error == nil ? .white.opacity(0.4) : Theme.fault)
+                        }
+                        .font(Theme.rounded(13, weight: .medium))
+                    }
+                }
+                .transition(.blurFade)
+            }
+        }
+        .padding(16)
+        .card(cornerRadius: 22)
+        .opacity(healthy.isEmpty ? 0 : 1)
+    }
+
+    // MARK: - Löschen
+
+    private func includesSevere(_ target: ClearTarget) -> Bool {
+        switch target {
+        case .ecu(let address, _):
+            let faults = scanner.results.first { $0.address == address }?.faults ?? []
+            return FaultCatalog.worst(faults, ecu: address) == .severe
+        case .obd:
+            return FaultCatalog.worst(scanner.obdCodes, ecu: nil) == .severe
+        case .all:
+            return scanner.results.contains { FaultCatalog.worst($0.faults, ecu: $0.address) == .severe }
+        }
+    }
+
+    private func perform(_ target: ClearTarget) async {
+        switch target {
+        case .ecu(let address, _): await scanner.clear(address)
+        case .all: await scanner.clearAll()
+        case .obd: await scanner.clearOBD()
+        }
+    }
+}
+
+// MARK: - Bausteine der Startseite
+
+/// Das Auto auf der Startseite: schwebt leicht, Räder drehen langsam.
+struct HeroCar: View {
+    var tint: Color
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            CarArtwork(wheelRotation: .degrees(t * 40), tint: tint)
+                .offset(y: CGFloat(sin(t * 1.4)) * 4)
+                .rotation3DEffect(.degrees(sin(t * 0.5) * 6), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+        }
+        .animation(.easeInOut(duration: 0.8), value: tint)
+    }
+}
+
+/// Glanzstreifen, der regelmäßig über einen Knopf läuft.
+struct Shimmer: View {
+    var body: some View {
+        TimelineView(.animation) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            let phase = fmod(t, 3.2) / 1.2
+            GeometryReader { geo in
+                LinearGradient(colors: [.clear, .white.opacity(0.55), .clear], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: geo.size.width * 0.35)
+                    .rotationEffect(.degrees(18))
+                    .offset(x: -geo.size.width * 0.4 + geo.size.width * 1.8 * min(phase, 1))
+                    .opacity(phase < 1 ? 1 : 0)
+            }
+        }
+        .allowsHitTesting(false)
+        .blendMode(.overlay)
+    }
+}
+
+struct ConnectionChip: View {
+    @EnvironmentObject private var ble: BLEManager
+    @EnvironmentObject private var session: ELMSession
+
+    var body: some View {
+        let color: Color = session.isInitialized ? Theme.ok
+            : (ble.status == .ready || ble.status == .connecting || ble.status == .scanning) ? .yellow : .gray
+        HStack(spacing: 7) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+                .shadow(color: color, radius: 5)
+            Text(session.isInitialized ? "Verbunden" : ble.status == .idle ? "Nicht verbunden" : ble.status.text)
+                .font(Theme.rounded(12, weight: .bold))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frosted(cornerRadius: 18)
+    }
+}
+
+/// Schnell- oder Vollscan.
+struct ModePicker: View {
+    @Binding var mode: FaultScanner.Mode
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(FaultScanner.Mode.allCases) { item in
+                Button {
+                    Haptics.tap()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { mode = item }
+                } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Image(systemName: item == .quick ? "hare.fill" : "tortoise.fill")
+                            Text(item == .quick ? "Schnell" : "Gründlich")
+                        }
+                        .font(Theme.rounded(14, weight: .bold))
+                        Text(item == .quick ? "Wichtigste Steuergeräte · ~10 s" : "Alle Adressen · ~1 min")
+                            .font(Theme.rounded(11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(mode == item ? Theme.accent.opacity(0.14) : Color.white.opacity(0.04))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(mode == item ? Theme.accent.opacity(0.7) : .white.opacity(0.08), lineWidth: 1.2)
+                    )
+                }
+                .buttonStyle(PressableStyle())
+            }
+        }
+    }
+}
+
+struct InfoCard: View {
+    var icon: String
+    var color: Color
+    var title: String
+    var text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(color)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(Theme.rounded(16, weight: .bold))
+                Text(text)
+                    .font(Theme.rounded(13, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .card(tint: color)
+    }
+}
+
+struct Toast: View {
+    var text: String
+    var color: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: color == Theme.ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .foregroundStyle(color)
+            Text(text)
+                .font(Theme.rounded(14, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frosted(cornerRadius: 20)
+        .shadow(color: .black.opacity(0.4), radius: 16, y: 8)
+    }
+}
+
+struct CountChip: View {
+    var count: Int
+    var label: String
+    var color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7).shadow(color: color, radius: 4)
+            Text("\(count) \(label)")
+        }
+        .font(Theme.rounded(13, weight: .bold))
+        .foregroundStyle(color)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(color.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(color.opacity(0.4), lineWidth: 1))
+    }
+}

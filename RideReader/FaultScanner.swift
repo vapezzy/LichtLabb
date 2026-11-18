@@ -89,7 +89,7 @@ final class FaultScanner: ObservableObject {
     var activeFaults: Int { results.reduce(0) { $0 + $1.faults.filter(\.isActive).count } }
 
     // Typische Adressen der F-Serie. Die Namen sind Richtwerte und können je nach Ausstattung abweichen.
-    static let knownECUs: [UInt8: String] = [
+    nonisolated static let knownECUs: [UInt8: String] = [
         0x01: "ACSM · Airbag",
         0x10: "ZGM · Gateway",
         0x12: "DME/DDE · Motor",
@@ -109,7 +109,7 @@ final class FaultScanner: ObservableObject {
         0x78: "IHKA · Klima",
     ]
 
-    static func name(for address: UInt8) -> String {
+    nonisolated static func name(for address: UInt8) -> String {
         knownECUs[address] ?? String(format: "Steuergerät %02X", address)
     }
 
@@ -280,6 +280,47 @@ final class FaultScanner: ObservableObject {
         task = nil
     }
 
+    /// Spielt einen Scan mit Beispieldaten ab (Mechaniker-Animation, dann Ergebnis) – ganz ohne Auto.
+    func runDemoScan(seconds: Double = 4.5) {
+        guard !isBusy else { return }
+        task = Task { [weak self] in
+            guard let self else { return }
+            self.results = []
+            self.obdCodes = []
+            self.clearMessage = nil
+            self.abortReason = nil
+            self.progress = 0
+            self.phase = .scanning
+            let steps = Self.knownECUs.keys.sorted()
+            for (index, address) in steps.enumerated() {
+                if Task.isCancelled { break }
+                self.currentStep = Self.name(for: address)
+                try? await Task.sleep(nanoseconds: UInt64(seconds / Double(steps.count) * 1_000_000_000))
+                self.progress = Double(index + 1) / Double(steps.count)
+            }
+            self.currentStep = ""
+            if Task.isCancelled {
+                self.phase = .idle
+            } else {
+                self.loadDemo()
+            }
+            self.task = nil
+        }
+    }
+
+    /// Setzt alles auf den Startzustand zurück (neue Kontrolle).
+    func reset() {
+        guard !isBusy else { return }
+        results = []
+        obdCodes = []
+        vin = nil
+        isDemo = false
+        abortReason = nil
+        clearMessage = nil
+        progress = 0
+        phase = .idle
+    }
+
     /// Beispieldaten, um die Ansicht ohne Auto auszuprobieren.
     func loadDemo() {
         isDemo = true
@@ -291,16 +332,18 @@ final class FaultScanner: ObservableObject {
                 FaultCode(code: "120308", status: 0x08),
                 FaultCode(code: "1B2A00", status: 0x09),
             ]),
-            ECUResult(address: 0x29, name: Self.name(for: 0x29), faults: []),
             ECUResult(address: 0x40, name: Self.name(for: 0x40), faults: [
                 FaultCode(code: "801C20", status: 0x04),
             ]),
             ECUResult(address: 0x60, name: Self.name(for: 0x60), faults: []),
             ECUResult(address: 0x72, name: Self.name(for: 0x72), faults: [
-                FaultCode(code: "A6A610", status: 0x89),
+                FaultCode(code: "A6A610", status: 0x08),
+            ]),
+            ECUResult(address: 0x29, name: Self.name(for: 0x29), faults: [
+                FaultCode(code: "480A1C", status: 0x89),
             ]),
         ]
-        obdCodes = [FaultCode(code: "P0300", status: 0x08, isOBD: true)]
+        obdCodes = [FaultCode(code: "P0420", status: 0x08, isOBD: true)]
         progress = 1
         phase = .finished(Date())
     }
@@ -308,7 +351,7 @@ final class FaultScanner: ObservableObject {
     // MARK: - Bericht
 
     var reportText: String {
-        var lines = ["LichtLab – Fehlerspeicher BMW F36"]
+        var lines = ["RideReader – Fehlerspeicher"]
         if isDemo { lines.append("(Beispieldaten)") }
         if case .finished(let date) = phase {
             lines.append(DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short))
@@ -324,7 +367,8 @@ final class FaultScanner: ObservableObject {
                 lines.append("  keine Einträge")
             } else {
                 for fault in result.faults {
-                    lines.append("  \(fault.code)  [\(fault.statusText)]")
+                    let info = FaultCatalog.info(for: fault, ecu: result.address)
+                    lines.append("  \(fault.code)  [\(fault.statusText)]  \(info.severity.label): \(info.area)")
                 }
             }
         }
@@ -333,7 +377,10 @@ final class FaultScanner: ObservableObject {
         if obdCodes.isEmpty {
             lines.append("  keine Einträge")
         } else {
-            for fault in obdCodes { lines.append("  \(fault.code)  [\(fault.statusText)]") }
+            for fault in obdCodes {
+                let info = FaultCatalog.info(for: fault, ecu: nil)
+                lines.append("  \(fault.code)  [\(fault.statusText)]  \(info.title)")
+            }
         }
         return lines.joined(separator: "\n")
     }

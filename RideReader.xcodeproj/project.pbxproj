@@ -8,33 +8,39 @@
 
 /* Begin PBXBuildFile section */
 		900000000000000000000001 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEManager.swift */; };
-		900000000000000000000002 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* ConnectionView.swift */; };
+		900000000000000000000002 /* CarArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* CarArt.swift */; };
 		900000000000000000000003 /* ConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ConsoleView.swift */; };
 		900000000000000000000004 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000004 /* ELMSession.swift */; };
-		900000000000000000000005 /* Effects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* Effects.swift */; };
+		900000000000000000000005 /* FaultCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* FaultCatalog.swift */; };
 		900000000000000000000006 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* FaultScanner.swift */; };
-		900000000000000000000007 /* FaultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* FaultsView.swift */; };
+		900000000000000000000007 /* FaultViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* FaultViews.swift */; };
 		900000000000000000000008 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* Hex.swift */; };
-		900000000000000000000009 /* LichtLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* LichtLabApp.swift */; };
-		90000000000000000000000A /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* Platform.swift */; };
-		90000000000000000000000B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* RootView.swift */; };
-		90000000000000000000000C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* SettingsView.swift */; };
+		900000000000000000000009 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* HomeView.swift */; };
+		90000000000000000000000A /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* IntroView.swift */; };
+		90000000000000000000000B /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* MechanicsLoader.swift */; };
+		90000000000000000000000C /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* Platform.swift */; };
+		90000000000000000000000D /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* RideReaderApp.swift */; };
+		90000000000000000000000E /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* SettingsTab.swift */; };
+		90000000000000000000000F /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A00000000000000000000003 /* LichtLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LichtLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000003 /* RideReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RideReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00000000000000000000001 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
-		F00000000000000000000002 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
+		F00000000000000000000002 /* CarArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarArt.swift; sourceTree = "<group>"; };
 		F00000000000000000000003 /* ConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleView.swift; sourceTree = "<group>"; };
 		F00000000000000000000004 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
-		F00000000000000000000005 /* Effects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Effects.swift; sourceTree = "<group>"; };
+		F00000000000000000000005 /* FaultCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultCatalog.swift; sourceTree = "<group>"; };
 		F00000000000000000000006 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
-		F00000000000000000000007 /* FaultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultsView.swift; sourceTree = "<group>"; };
+		F00000000000000000000007 /* FaultViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultViews.swift; sourceTree = "<group>"; };
 		F00000000000000000000008 /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
-		F00000000000000000000009 /* LichtLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichtLabApp.swift; sourceTree = "<group>"; };
-		F0000000000000000000000A /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F0000000000000000000000B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F00000000000000000000009 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000A /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000B /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
+		F0000000000000000000000C /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F0000000000000000000000D /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
+		F0000000000000000000000E /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		F0000000000000000000000F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,34 +57,37 @@
 		B00000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				B00000000000000000000002 /* LichtLab */,
+				B00000000000000000000002 /* RideReader */,
 				B00000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		B00000000000000000000002 /* LichtLab */ = {
+		B00000000000000000000002 /* RideReader */ = {
 			isa = PBXGroup;
 			children = (
 				F00000000000000000000001 /* BLEManager.swift */,
-				F00000000000000000000002 /* ConnectionView.swift */,
+				F00000000000000000000002 /* CarArt.swift */,
 				F00000000000000000000003 /* ConsoleView.swift */,
 				F00000000000000000000004 /* ELMSession.swift */,
-				F00000000000000000000005 /* Effects.swift */,
+				F00000000000000000000005 /* FaultCatalog.swift */,
 				F00000000000000000000006 /* FaultScanner.swift */,
-				F00000000000000000000007 /* FaultsView.swift */,
+				F00000000000000000000007 /* FaultViews.swift */,
 				F00000000000000000000008 /* Hex.swift */,
-				F00000000000000000000009 /* LichtLabApp.swift */,
-				F0000000000000000000000A /* Platform.swift */,
-				F0000000000000000000000B /* RootView.swift */,
-				F0000000000000000000000C /* SettingsView.swift */,
+				F00000000000000000000009 /* HomeView.swift */,
+				F0000000000000000000000A /* IntroView.swift */,
+				F0000000000000000000000B /* MechanicsLoader.swift */,
+				F0000000000000000000000C /* Platform.swift */,
+				F0000000000000000000000D /* RideReaderApp.swift */,
+				F0000000000000000000000E /* SettingsTab.swift */,
+				F0000000000000000000000F /* Theme.swift */,
 			);
-			path = LichtLab;
+			path = RideReader;
 			sourceTree = "<group>";
 		};
 		B00000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000003 /* LichtLab.app */,
+				A00000000000000000000003 /* RideReader.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -86,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A00000000000000000000002 /* LichtLab */ = {
+		A00000000000000000000002 /* RideReader */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D00000000000000000000002 /* Build configuration list for PBXNativeTarget "LichtLab" */;
+			buildConfigurationList = D00000000000000000000002 /* Build configuration list for PBXNativeTarget "RideReader" */;
 			buildPhases = (
 				C00000000000000000000001 /* Sources */,
 				C00000000000000000000002 /* Frameworks */,
@@ -98,9 +107,9 @@
 			);
 			dependencies = (
 			);
-			name = LichtLab;
-			productName = LichtLab;
-			productReference = A00000000000000000000003 /* LichtLab.app */;
+			name = RideReader;
+			productName = RideReader;
+			productReference = A00000000000000000000003 /* RideReader.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -118,7 +127,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D00000000000000000000001 /* Build configuration list for PBXProject "LichtLab" */;
+			buildConfigurationList = D00000000000000000000001 /* Build configuration list for PBXProject "RideReader" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = de;
 			hasScannedForEncodings = 0;
@@ -131,7 +140,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A00000000000000000000002 /* LichtLab */,
+				A00000000000000000000002 /* RideReader */,
 			);
 		};
 /* End PBXProject section */
@@ -152,17 +161,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				900000000000000000000001 /* BLEManager.swift in Sources */,
-				900000000000000000000002 /* ConnectionView.swift in Sources */,
+				900000000000000000000002 /* CarArt.swift in Sources */,
 				900000000000000000000003 /* ConsoleView.swift in Sources */,
 				900000000000000000000004 /* ELMSession.swift in Sources */,
-				900000000000000000000005 /* Effects.swift in Sources */,
+				900000000000000000000005 /* FaultCatalog.swift in Sources */,
 				900000000000000000000006 /* FaultScanner.swift in Sources */,
-				900000000000000000000007 /* FaultsView.swift in Sources */,
+				900000000000000000000007 /* FaultViews.swift in Sources */,
 				900000000000000000000008 /* Hex.swift in Sources */,
-				900000000000000000000009 /* LichtLabApp.swift in Sources */,
-				90000000000000000000000A /* Platform.swift in Sources */,
-				90000000000000000000000B /* RootView.swift in Sources */,
-				90000000000000000000000C /* SettingsView.swift in Sources */,
+				900000000000000000000009 /* HomeView.swift in Sources */,
+				90000000000000000000000A /* IntroView.swift in Sources */,
+				90000000000000000000000B /* MechanicsLoader.swift in Sources */,
+				90000000000000000000000C /* Platform.swift in Sources */,
+				90000000000000000000000D /* RideReaderApp.swift in Sources */,
+				90000000000000000000000E /* SettingsTab.swift in Sources */,
+				90000000000000000000000F /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,15 +229,15 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = LichtLab/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LichtLab;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "LichtLab verbindet sich per Bluetooth mit deinem OBD-Adapter.";
+				INFOPLIST_FILE = RideReader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RideReader;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "RideReader verbindet sich per Bluetooth mit deinem OBD-Stecker.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = local.lichtlab.f36;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.ridereader.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -241,15 +253,15 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = LichtLab/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LichtLab;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "LichtLab verbindet sich per Bluetooth mit deinem OBD-Adapter.";
+				INFOPLIST_FILE = RideReader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RideReader;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "RideReader verbindet sich per Bluetooth mit deinem OBD-Stecker.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = local.lichtlab.f36;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.ridereader.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -260,7 +272,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D00000000000000000000001 /* Build configuration list for PBXProject "LichtLab" */ = {
+		D00000000000000000000001 /* Build configuration list for PBXProject "RideReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E00000000000000000000001 /* Debug */,
@@ -269,7 +281,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D00000000000000000000002 /* Build configuration list for PBXNativeTarget "LichtLab" */ = {
+		D00000000000000000000002 /* Build configuration list for PBXNativeTarget "RideReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E00000000000000000000003 /* Debug */,

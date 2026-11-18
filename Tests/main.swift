@@ -149,6 +149,28 @@ func run() async {
     await demo.clearAll()
     check(demo.results.allSatisfy { $0.faults.isEmpty }, "Beispiel-Fehler lassen sich ohne Auto „löschen“")
 
+    print("Fehlerkatalog")
+    let misfire = FaultCatalog.info(for: FaultCode(code: "P0300", status: 0x08, isOBD: true), ecu: nil)
+    check(misfire.severity == .severe && misfire.title.contains("Zündaussetzer"), "P0300 → rot: \(misfire.headline)")
+    let cat = FaultCatalog.info(for: FaultCode(code: "P0420", status: 0x08, isOBD: true), ecu: nil)
+    check(cat.severity == .fault && cat.headline == "P0420 – Katalysator – Wirkungsgrad zu niedrig (Bank 1)", "P0420 → orange: \(cat.headline)")
+    let egr = FaultCatalog.info(for: FaultCode(code: "P0401", status: 0x08, isOBD: true), ecu: nil)
+    check(egr.headline == "P0401 – Abgasrückführung – Durchfluss zu gering", "AGR-Überschrift: \(egr.headline)")
+    let cyl = FaultCatalog.info(for: FaultCode(code: "P0304", status: 0x08, isOBD: true), ecu: nil)
+    check(cyl.title == "Zündaussetzer Zylinder 4" && cyl.severity == .severe, "P0304 aus der Zylinder-Tabelle")
+    let unknown = FaultCatalog.info(for: FaultCode(code: "P1101", status: 0x08, isOBD: true), ecu: nil)
+    check(!unknown.isExact && unknown.area == "Luftmessung", "unbekannter P1xxx → Bereich Luftmessung")
+    let airbag = FaultCatalog.info(for: FaultCode(code: "930C2A", status: 0x08), ecu: 0x01)
+    check(airbag.severity == .severe && airbag.area == "Airbag", "Airbag-Code → rot")
+    let body = FaultCatalog.info(for: FaultCode(code: "801C20", status: 0x08), ecu: 0x40)
+    check(body.severity == .fault, "Karosserie, nur gespeichert → orange")
+    let lamp = FaultCatalog.info(for: FaultCode(code: "120308", status: 0x89), ecu: 0x12)
+    check(lamp.severity == .severe, "Motor aktiv mit Warnlampe → rot")
+    let query = body.searchURL.absoluteString
+    check(query.hasPrefix("https://www.google.com/search?q=") && query.contains("801C20") && !query.contains("WBA"),
+          "Websuche enthält Code, aber keine FIN: \(query)")
+    check(scanner3.reportText.hasPrefix("RideReader"), "Bericht heißt RideReader")
+
     print("Unbekanntes Steuergerät")
     do {
         _ = try await session.readDTCs(ecu: 0x55)
