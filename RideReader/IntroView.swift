@@ -97,7 +97,7 @@ struct IntroView: View {
                     .opacity(Motion.progress(t, 1.9, 2.3) * (1 - Motion.progress(t, 3.6, 4.1)))
 
                 CarArtwork(outline: outline, details: details, fill: fill, wheels: wheels,
-                           wheelRotation: .degrees(spin), lights: lights, tint: Theme.accent)
+                           wheelRotation: .degrees(spin), lights: lights, tint: Theme.accent, time: t)
                     .frame(width: w * 0.92)
                     .scaleEffect(0.88 + 0.12 * push)
                     .offset(x: -14 * (1 - push), y: -30)

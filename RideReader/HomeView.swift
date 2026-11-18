@@ -457,7 +457,7 @@ struct HeroCar: View {
     var body: some View {
         TimelineView(.animation) { context in
             let t = context.date.timeIntervalSinceReferenceDate
-            CarArtwork(wheelRotation: .degrees(t * 40), tint: tint)
+            CarArtwork(wheelRotation: .degrees(t * 40), tint: tint, time: t)
                 .offset(y: CGFloat(sin(t * 1.4)) * 4)
                 .rotation3DEffect(.degrees(sin(t * 0.5) * 6), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
         }

@@ -147,8 +147,14 @@ struct CarArtwork: View {
     var lights: Double = 1
     /// Kantenlicht-Farbe (Zustand)
     var tint: Color = Theme.accent
+    /// laufende Zeit für Lichtreflexe und fließende Linien (Sekunden)
+    var time: Double = 0
 
     var body: some View {
+        // Position des Glanzstreifens über dem Lack (läuft alle ~4,5 s einmal durch)
+        let sweep = fmod(time * 0.22, 1) * 1.8 - 0.4
+        // Lichtimpuls, der die Kontur entlangfließt
+        let flow = fmod(time * 0.18, 1)
         GeometryReader { geo in
             let rect = CGRect(origin: .zero, size: geo.size)
             let m = CarGeometry.mapper(for: rect)
@@ -161,31 +167,68 @@ struct CarArtwork: View {
                     .position(m(CGPoint(x: 500, y: 350)))
                     .opacity(fill)
 
-                // Lichtreflex am Boden
-                Ellipse()
-                    .fill(tint.opacity(0.35))
-                    .frame(width: 700 * s, height: 26 * s)
-                    .blur(radius: 18 * s)
-                    .position(m(CGPoint(x: 500, y: 352)))
-                    .opacity(fill * 0.8)
+                ZStack {
+                    // Lichtreflex am Boden
+                    Ellipse()
+                        .fill(tint.opacity(0.35))
+                        .frame(width: 700 * s, height: 26 * s)
+                        .blur(radius: 18 * s)
+                        .position(m(CGPoint(x: 500, y: 352)))
+                    // Spiegelung des Lacks im Boden
+                    CarBodyShape()
+                        .fill(LinearGradient(colors: [tint.opacity(0.22), .clear], startPoint: .top, endPoint: .center))
+                        .scaleEffect(x: 1, y: -1, anchor: .bottom)
+                        .offset(y: -geo.size.height * 0.02)
+                        .mask(LinearGradient(colors: [.clear, .black.opacity(0.6), .clear],
+                                             startPoint: .top, endPoint: .bottom))
+                        .blur(radius: 3 * s)
+                }
+                .opacity(fill * 0.85)
 
-                // Karosserie-Füllung (dunkler Lack mit Kantenlicht)
-                CarBodyShape()
-                    .fill(LinearGradient(stops: [
-                        .init(color: Color(white: 0.2), location: 0),
-                        .init(color: Color(white: 0.07), location: 0.45),
-                        .init(color: Color(white: 0.03), location: 1),
-                    ], startPoint: .top, endPoint: .bottom))
-                    .overlay(
-                        CarBodyShape()
-                            .fill(LinearGradient(colors: [tint.opacity(0.0), tint.opacity(0.22), tint.opacity(0.0)],
-                                                 startPoint: .leading, endPoint: .trailing))
-                            .blendMode(.screen)
-                    )
-                    .opacity(fill)
+                ZStack {
+                    // Lack: tiefes Metallic mit Horizont-Reflexlinie
+                    CarBodyShape()
+                        .fill(LinearGradient(stops: [
+                            .init(color: Color(white: 0.34), location: 0),
+                            .init(color: Color(white: 0.12), location: 0.32),
+                            .init(color: Color(white: 0.22), location: 0.5),
+                            .init(color: Color(white: 0.05), location: 0.56),
+                            .init(color: Color(white: 0.02), location: 1),
+                        ], startPoint: .top, endPoint: .bottom))
+                    // farbiges Umgebungslicht
+                    CarBodyShape()
+                        .fill(LinearGradient(colors: [tint.opacity(0.0), tint.opacity(0.28), tint.opacity(0.05)],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .blendMode(.screen)
+                    // wandernder Glanzstreifen (Studio-Softbox, die über das Auto zieht)
+                    LinearGradient(stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .white.opacity(0.0), location: max(0, min(1, sweep - 0.12))),
+                        .init(color: .white.opacity(0.55), location: max(0, min(1, sweep))),
+                        .init(color: .white.opacity(0.0), location: max(0, min(1, sweep + 0.06))),
+                        .init(color: .clear, location: 1),
+                    ], startPoint: UnitPoint(x: 0, y: 0.2), endPoint: UnitPoint(x: 1, y: 0.8))
+                        .blendMode(.screen)
+                        .mask(CarBodyShape())
+                    // Kantenlicht oben (Rim Light)
+                    CarBodyShape()
+                        .stroke(LinearGradient(colors: [.white.opacity(0.75), tint.opacity(0.5), .clear],
+                                               startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.55)), lineWidth: 1.6)
+                }
+                .opacity(fill)
 
                 CarWindowShape()
-                    .fill(LinearGradient(colors: [Color(white: 0.28).opacity(0.9), Color(white: 0.02)], startPoint: .top, endPoint: .bottom))
+                    .fill(LinearGradient(colors: [Color(white: 0.32).opacity(0.9), tint.opacity(0.18), Color(white: 0.02)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .overlay(
+                        LinearGradient(stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .white.opacity(0.35), location: max(0, min(1, sweep + 0.05))),
+                            .init(color: .clear, location: max(0, min(1, sweep + 0.15))),
+                            .init(color: .clear, location: 1),
+                        ], startPoint: .leading, endPoint: .trailing)
+                        .mask(CarWindowShape())
+                    )
                     .opacity(fill)
 
                 // Konturen
@@ -206,6 +249,23 @@ struct CarArtwork: View {
                 }
                 .shadow(color: tint.opacity(0.7), radius: 5)
                 .opacity(1 - fill * 0.55)
+
+                // fließende Lichtimpulse entlang Kontur und Schulterlinie
+                ZStack {
+                    CarBodyShape()
+                        .trim(from: flow, to: min(1, flow + 0.14))
+                        .stroke(LinearGradient(colors: [.clear, tint, .white], startPoint: .leading, endPoint: .trailing),
+                                style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
+                    CarBodyShape()
+                        .trim(from: fmod(flow + 0.5, 1), to: min(1, fmod(flow + 0.5, 1) + 0.1))
+                        .stroke(tint, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                    CarDetailShape()
+                        .trim(from: fmod(flow * 1.6, 1), to: min(1, fmod(flow * 1.6, 1) + 0.08))
+                        .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+                }
+                .shadow(color: tint, radius: 6)
+                .shadow(color: tint.opacity(0.7), radius: 14)
+                .opacity(fill * outline)
 
                 // Räder
                 ForEach([CarGeometry.rearWheel, CarGeometry.frontWheel], id: \.x) { center in
@@ -236,7 +296,7 @@ struct CarArtwork: View {
                         .blendMode(.screen)
                 }
                 .position(m(CarGeometry.headlight))
-                .opacity(lights)
+                .opacity(lights * (0.85 + 0.15 * sin(time * 2.2)))
 
                 // Rückleuchte
                 Capsule()

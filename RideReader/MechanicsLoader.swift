@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Ladeanimation: drei kleine Anime-Mechaniker arbeiten an einem Motor.
-/// - Kenji läuft hin und her und schlägt mit dem Schraubenschlüssel zu (Funken!)
-/// - Mia steht auf der Werkzeugkiste und leuchtet mit der Taschenlampe in den Motor
-/// - Bolt rollt einen Reifen über den Fortschrittsbalken – der Reifen IST der Ladebalken
+/// Ladeanimation im Anime-Slapstick-Stil: drei Chibi-Mechaniker in voller Panik.
+/// - Kenji rennt kopflos hin und her, rudert mit den Armen, legt einen Bauchklatscher hin und sucht verzweifelt
+/// - Mia wühlt in der Werkzeugkiste, wirft alles im hohen Bogen raus und springt kreischend hoch
+/// - Bolt schiebt in Todesangst einen Reifen über den Fortschrittsbalken – der Reifen IST der Ladebalken
 /// Alles wird pro Bild mit Canvas gezeichnet (flüssig, 120 Hz).
 struct MechanicsLoader: View {
     /// 0…1, nil = unbestimmt (Bolt läuft dann hin und her)
@@ -13,16 +13,16 @@ struct MechanicsLoader: View {
     @State private var start = Date()
 
     static let jokes = [
-        "Wer hat meinen 10er gesehen?!",
-        "Hmm … klingt teuer.",
-        "Licht hierher, bitte!",
-        "Nur noch EINE Schraube …",
-        "Das war vorher schon so!",
-        "Ich les' Steuergeräte wie Manga.",
-        "Keine Panik, nur ein Kabel.",
-        "Kaffee? Erst nach dem Scan!",
-        "Gleich hab ich's … glaub ich.",
-        "Sieht aus wie neu. Fast.",
+        "AAAH! Wo ist der 10er?!",
+        "Es piept! WARUM PIEPT ES?!",
+        "Wer hat das Kabel gezogen?!",
+        "Ruhig bleiben. RUHIG BLEIBEN!",
+        "Ich hab nix gemacht!!",
+        "Schnell, bevor der Chef kommt!",
+        "Gehört das Teil da hin?!",
+        "NICHT ANFASSEN! … ups.",
+        "Mein Schraubenschlüssel lebt!",
+        "Kaffee! Ich brauch KAFFEE!",
     ]
 
     var body: some View {
@@ -41,10 +41,10 @@ struct MechanicsLoader: View {
 
     @ViewBuilder
     private func bubble(_ t: Double) -> some View {
-        let slot = Int(t / 2.6)
-        let local = t - Double(slot) * 2.6
-        let appear = Motion.backOut(Motion.progress(local, 0.0, 0.35))
-        let fade = 1 - Motion.progress(local, 2.25, 2.6)
+        let slot = Int(t / 1.9)
+        let local = t - Double(slot) * 1.9
+        let appear = Motion.backOut(Motion.progress(local, 0.0, 0.25))
+        let fade = 1 - Motion.progress(local, 1.65, 1.9)
         let joke = Self.jokes[slot % Self.jokes.count]
         let sides: [UnitPoint] = [.leading, .trailing, .center]
         let side = sides[slot % 3]
@@ -59,6 +59,8 @@ struct MechanicsLoader: View {
                     .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
             )
             .scaleEffect(appear, anchor: .bottom)
+            .rotationEffect(.degrees(sin(t * 40) * 2.5))
+            .offset(x: CGFloat(sin(t * 53)) * 1.5)
             .opacity(fade)
             .frame(maxWidth: .infinity, alignment: side == .leading ? .leading : side == .trailing ? .trailing : .center)
             .padding(.horizontal, 8)
@@ -71,14 +73,15 @@ struct MechanicsLoader: View {
         let floorY = size.height * 0.74
         let engineCenter = CGPoint(x: size.width * 0.5, y: floorY - 46 * u)
 
-        // Werkstattlicht von oben
+        // Werkstattlicht von oben – flackert hektisch mit
+        let flicker = 0.75 + 0.25 * (sin(t * 23) > 0.92 ? 0.0 : 1.0)
         var cone = Path()
         cone.move(to: CGPoint(x: size.width * 0.44, y: 0))
         cone.addLine(to: CGPoint(x: size.width * 0.56, y: 0))
         cone.addLine(to: CGPoint(x: size.width * 0.92, y: floorY + 10 * u))
         cone.addLine(to: CGPoint(x: size.width * 0.08, y: floorY + 10 * u))
         cone.closeSubpath()
-        ctx.fill(cone, with: .linearGradient(Gradient(colors: [accent.opacity(0.16), accent.opacity(0.0)]),
+        ctx.fill(cone, with: .linearGradient(Gradient(colors: [accent.opacity(0.18 * flicker), accent.opacity(0.0)]),
                                              startPoint: .zero, endPoint: CGPoint(x: 0, y: floorY)))
 
         // Boden
@@ -86,63 +89,79 @@ struct MechanicsLoader: View {
                  with: .radialGradient(Gradient(colors: [Color.white.opacity(0.12), .clear]),
                                        center: CGPoint(x: size.width / 2, y: floorY), startRadius: 0, endRadius: size.width * 0.45))
 
-        // Mia mit Taschenlampe – Lichtkegel zuerst, damit er hinter allem liegt
-        let miaPos = CGPoint(x: size.width * 0.8, y: floorY - 26 * u)
-        let sweep = sin(t * 1.3)
-        let miaScale = u * 0.9
-        let miaBob = sin(t * 2.4) * 1.2
-        let miaArm = 0.28 + sweep * 0.22
-        // Hand- und Lampenposition genau wie in drawMechanic berechnen (Figur schaut nach links)
-        let shoulder = CGPoint(x: miaPos.x - 8 * miaScale, y: miaPos.y + (miaBob - 48) * miaScale)
-        let dir = CGPoint(x: -cos(miaArm), y: sin(miaArm))
-        let lamp = CGPoint(x: shoulder.x + dir.x * 42 * miaScale, y: shoulder.y + dir.y * 42 * miaScale)
-        let reach = 170 * u
-        var beam = Path()
-        beam.move(to: lamp)
-        for spread in [-0.2, 0.2] {
-            let a = atan2(dir.y, dir.x) + spread
-            beam.addLine(to: CGPoint(x: lamp.x + CGFloat(cos(a)) * reach, y: lamp.y + CGFloat(sin(a)) * reach))
-        }
-        beam.closeSubpath()
-        ctx.fill(beam, with: .radialGradient(Gradient(colors: [Color(red: 1, green: 0.95, blue: 0.7).opacity(0.55), .clear]),
-                                             center: lamp, startRadius: 0, endRadius: reach))
-
+        drawToolCart(ctx, at: CGPoint(x: size.width * 0.06, y: floorY), u: u)
         drawEngine(ctx, center: engineCenter, u: u, t: t)
 
-        // Kenji: läuft zwischen zwei Punkten, bleibt am Motor stehen und schlägt zu
-        let cycle = fmod(t, 4.0)
-        let leftX = size.width * 0.1, workX = engineCenter.x - 78 * u
-        var kenjiX: CGFloat, facing: CGFloat, walking: Bool, swing: Double
-        if cycle < 1.1 {           // zum Motor laufen
-            let p = Motion.easeInOut(cycle / 1.1)
-            kenjiX = leftX + (workX - leftX) * p; facing = 1; walking = true; swing = 0
-        } else if cycle < 2.9 {    // arbeiten
-            kenjiX = workX; facing = 1; walking = false
-            swing = max(0, sin((cycle - 1.1) * 9))
-        } else {                   // zurück zum Werkzeugwagen
-            let p = Motion.easeInOut((cycle - 2.9) / 1.1)
-            kenjiX = workX + (leftX - workX) * p; facing = -1; walking = true; swing = 0
-        }
-        // Werkzeugwagen links
-        drawToolCart(ctx, at: CGPoint(x: size.width * 0.06, y: floorY), u: u)
-        let kenji = Mechanic(suit: Color(red: 0.2, green: 0.45, blue: 0.95), hair: Color(red: 0.12, green: 0.1, blue: 0.16),
-                             hat: .cap(Color(red: 1, green: 0.35, blue: 0.3)), tool: .wrench, blush: true)
-        drawMechanic(ctx, kenji, feet: CGPoint(x: kenjiX, y: floorY), scale: u * 0.95, facing: facing,
-                     walk: walking ? t * 9 : 0, armAngle: walking ? 0.3 + sin(t * 9) * 0.3 : -0.4 + swing * 1.6, t: t)
-        // Funken beim Treffer
-        if !walking && swing > 0.92 {
-            drawSparks(ctx, at: CGPoint(x: workX + 30 * u, y: floorY - 70 * u), u: u, t: t)
-        }
-
-        // Werkzeugkiste + Mia
-        let box = CGRect(x: miaPos.x - 26 * u, y: floorY - 26 * u, width: 52 * u, height: 26 * u)
+        // MIA: wühlt panisch in der Werkzeugkiste und wirft alles raus, springt zwischendurch kreischend hoch
+        let box = CGRect(x: size.width * 0.8 - 26 * u, y: floorY - 26 * u, width: 52 * u, height: 26 * u)
+        drawFlyingTools(ctx, from: CGPoint(x: box.midX, y: box.minY), u: u, t: t)
         drawToolbox(ctx, box, u: u)
+        let miaCycle = fmod(t, 3.0)
         let mia = Mechanic(suit: Color(red: 1, green: 0.55, blue: 0.2), hair: Color(red: 0.95, green: 0.45, blue: 0.62),
                            hat: .ponytail, tool: .flashlight, blush: true)
-        drawMechanic(ctx, mia, feet: miaPos, scale: miaScale, facing: -1, walk: 0,
-                     armAngle: miaArm, t: t, bob: miaBob)
+        let miaFeet = CGPoint(x: box.maxX + 12 * u, y: floorY)
+        if miaCycle < 2.1 {
+            // kopfüber in der Kiste: vorgebeugt, Arme wühlen
+            drawMechanic(ctx, mia, feet: miaFeet, scale: u * 0.85, facing: -1, walk: sin(t * 14) * 0.3,
+                         armAngle: 0.9 + sin(t * 26) * 0.7, t: t, tilt: 0.75 + sin(t * 9) * 0.08,
+                         panic: true, backArm: 0.6 + sin(t * 26 + 2) * 0.9)
+        } else {
+            // springt hoch: „AAAH!“
+            let p = (miaCycle - 2.1) / 0.9
+            let lift = CGFloat(sin(p * .pi)) * 22
+            drawMechanic(ctx, mia, feet: miaFeet, scale: u * 0.85, facing: -1, walk: 0,
+                         armAngle: -1.3 + sin(t * 30) * 0.3, t: t, panic: true,
+                         backArm: .pi - 0.4 + sin(t * 30) * 0.3, lift: lift, sweat: true)
+            drawPanicMarks(ctx, head: CGPoint(x: miaFeet.x, y: floorY - (78 + lift) * u * 0.85), u: u, t: t, exclaim: true)
+        }
 
-        // Fortschrittsbalken + Bolt mit Reifen
+        // KENJI: rennt kopflos hin und her, rudert mit den Armen, stolpert, sucht verzweifelt
+        let kenji = Mechanic(suit: Color(red: 0.2, green: 0.45, blue: 0.95), hair: Color(red: 0.12, green: 0.1, blue: 0.16),
+                             hat: .cap(Color(red: 1, green: 0.35, blue: 0.3)), tool: .wrench, blush: true)
+        let ks = u * 0.95
+        let left = size.width * 0.1, right = size.width * 0.6
+        let k = fmod(t, 6.4)
+        if k < 1.4 {
+            // sprintet nach rechts
+            let x = left + (right - left) * CGFloat(Motion.easeInOut(k / 1.4))
+            drawRunner(ctx, kenji, x: x, floorY: floorY, scale: ks, facing: 1, t: t, u: u, speed: 1)
+        } else if k < 1.75 {
+            // stolpert – Bauchklatscher
+            let p = (k - 1.4) / 0.35
+            let x = right + 22 * u * CGFloat(Motion.easeOut(p))
+            drawMechanic(ctx, kenji, feet: CGPoint(x: x, y: floorY), scale: ks, facing: 1, walk: t * 30,
+                         armAngle: -1.4, t: t, tilt: 1.5 * p * p, panic: true, backArm: .pi - 0.3,
+                         lift: CGFloat(sin(p * .pi)) * 10)
+        } else if k < 2.5 {
+            // liegt flach, Beine zappeln, Sternchen kreisen
+            let x = right + 22 * u
+            drawDust(ctx, at: CGPoint(x: x + 60 * u, y: floorY), u: u, age: (k - 1.75) / 0.75)
+            drawMechanic(ctx, kenji, feet: CGPoint(x: x, y: floorY), scale: ks, facing: 1, walk: t * 40,
+                         armAngle: -1.5, t: t, tilt: 1.5, panic: true, backArm: .pi - 0.2, dizzy: true)
+            drawStars(ctx, around: CGPoint(x: x + 80 * ks, y: floorY - 22 * u), u: u, t: t)
+        } else if k < 2.8 {
+            // springt wieder auf
+            let p = (k - 2.5) / 0.3
+            let x = right + 22 * u
+            drawMechanic(ctx, kenji, feet: CGPoint(x: x, y: floorY), scale: ks, facing: 1, walk: 0,
+                         armAngle: -1.2, t: t, tilt: 1.5 * (1 - Motion.backOut(p)), panic: true,
+                         backArm: .pi - 0.6, lift: CGFloat(sin(p * .pi)) * 16)
+        } else if k < 4.2 {
+            // rennt zurück, noch schneller
+            let p = (k - 2.8) / 1.4
+            let x = right + 22 * u + (left - right - 22 * u) * CGFloat(Motion.easeInOut(p))
+            drawRunner(ctx, kenji, x: x, floorY: floorY, scale: ks, facing: -1, t: t, u: u, speed: 1.3)
+        } else {
+            // am Werkzeugwagen: hektisch suchen – Kopf links/rechts, hüpfen, Arme hoch
+            let facing: CGFloat = fmod(t, 0.5) < 0.25 ? 1 : -1
+            let lift = CGFloat(abs(sin(t * 11))) * 7
+            drawMechanic(ctx, kenji, feet: CGPoint(x: left + 14 * u, y: floorY), scale: ks, facing: facing, walk: 0,
+                         armAngle: -1.1 + sin(t * 18) * 0.5, t: t, panic: true,
+                         backArm: .pi - 0.5 + sin(t * 18 + 1) * 0.5, lift: lift, sweat: true)
+            drawPanicMarks(ctx, head: CGPoint(x: left + 14 * u, y: floorY - (80 + lift) * ks), u: u, t: t, exclaim: false)
+        }
+
+        // Fortschrittsbalken + BOLT, der den Reifen in Todesangst über den Balken schiebt
         let trackY = floorY + 30 * u
         let track = CGRect(x: size.width * 0.08, y: trackY, width: size.width * 0.84, height: 8 * u)
         ctx.fill(Path(roundedRect: track, cornerRadius: 4 * u), with: .color(.white.opacity(0.08)))
@@ -150,7 +169,7 @@ struct MechanicsLoader: View {
         if let progress {
             p = min(max(progress, 0), 1)
         } else {
-            p = 0.5 + 0.5 * sin(t * 0.9)
+            p = 0.5 + 0.5 * sin(t * 1.4)
         }
         let filled = CGRect(x: track.minX, y: track.minY, width: max(track.height, track.width * p), height: track.height)
         ctx.fill(Path(roundedRect: filled, cornerRadius: 4 * u),
@@ -161,12 +180,125 @@ struct MechanicsLoader: View {
         glow.fill(Path(roundedRect: filled, cornerRadius: 4 * u), with: .color(accent.opacity(0.6)))
 
         let tireR = 13 * u
+        let jitter = CGFloat(sin(t * 47)) * 1.2 * u
         let tireCenter = CGPoint(x: filled.maxX, y: track.midY - tireR - 2 * u)
-        drawTire(ctx, center: tireCenter, radius: tireR, rotation: Double(filled.maxX / tireR))
+        drawTire(ctx, center: tireCenter, radius: tireR, rotation: Double(filled.maxX / tireR) + t * 6)
         let bolt = Mechanic(suit: Color(red: 0.25, green: 0.8, blue: 0.55), hair: Color(red: 0.98, green: 0.82, blue: 0.3),
                             hat: .spiky, tool: .none, blush: true)
-        drawMechanic(ctx, bolt, feet: CGPoint(x: tireCenter.x - 28 * u, y: track.midY - 2 * u), scale: u * 0.62, facing: 1,
-                     walk: progress == nil ? t * 8 : t * 6, armAngle: 0.15, t: t, sweat: true)
+        let boltFeet = CGPoint(x: tireCenter.x - 30 * u + jitter, y: track.midY - 2 * u)
+        drawSpeedLines(ctx, behind: CGPoint(x: boltFeet.x - 12 * u, y: boltFeet.y - 30 * u), facing: 1, u: u * 0.6, t: t)
+        drawMechanic(ctx, bolt, feet: boltFeet, scale: u * 0.62, facing: 1, walk: t * 22,
+                     armAngle: 0.1 + sin(t * 30) * 0.08, t: t, tilt: 0.35, panic: true, sweat: true)
+    }
+
+    /// Kenji im Vollsprint: Arme wie Windmühlen, Staubwolken, Speedlines.
+    private func drawRunner(_ ctx: GraphicsContext, _ m: Mechanic, x: CGFloat, floorY: CGFloat, scale: CGFloat,
+                            facing: CGFloat, t: Double, u: CGFloat, speed: Double) {
+        drawSpeedLines(ctx, behind: CGPoint(x: x - facing * 20 * u, y: floorY - 50 * u), facing: facing, u: u, t: t)
+        drawDust(ctx, at: CGPoint(x: x - facing * 16 * u, y: floorY), u: u, age: fmod(t * 4, 1))
+        drawMechanic(ctx, m, feet: CGPoint(x: x, y: floorY), scale: scale, facing: facing, walk: t * 26 * speed,
+                     armAngle: -0.4 + sin(t * 24 * speed) * 1.5, t: t, tilt: 0.28, panic: true,
+                     backArm: .pi * 0.75 + sin(t * 24 * speed + 2) * 1.6, sweat: true)
+    }
+
+    // MARK: - Anime-Effekte
+
+    private func drawSpeedLines(_ ctx: GraphicsContext, behind point: CGPoint, facing: CGFloat, u: CGFloat, t: Double) {
+        for i in 0..<5 {
+            let y = point.y + CGFloat(i - 2) * 9 * u
+            let len = (18 + 14 * abs(sin(t * 17 + Double(i) * 1.7))) * Double(u)
+            var line = Path()
+            line.move(to: CGPoint(x: point.x, y: y))
+            line.addLine(to: CGPoint(x: point.x - facing * CGFloat(len), y: y))
+            ctx.stroke(line, with: .color(.white.opacity(0.45)), style: StrokeStyle(lineWidth: 1.6 * u, lineCap: .round))
+        }
+    }
+
+    private func drawDust(_ ctx: GraphicsContext, at point: CGPoint, u: CGFloat, age: Double) {
+        for i in 0..<3 {
+            let r = (4 + 7 * age + Double(i) * 2) * Double(u)
+            let x = point.x + CGFloat(i - 1) * 8 * u
+            let y = point.y - CGFloat(age) * 8 * u - CGFloat(i) * 3 * u
+            ctx.fill(Path(ellipseIn: CGRect(x: x - CGFloat(r), y: y - CGFloat(r), width: CGFloat(r * 2), height: CGFloat(r * 2))),
+                     with: .color(Color(white: 0.75).opacity(0.35 * (1 - age))))
+        }
+    }
+
+    /// Kreisende Sternchen über dem Kopf (nach dem Sturz).
+    private func drawStars(_ ctx: GraphicsContext, around center: CGPoint, u: CGFloat, t: Double) {
+        for i in 0..<3 {
+            let a = t * 6 + Double(i) * 2.1
+            let p = CGPoint(x: center.x + CGFloat(cos(a)) * 18 * u, y: center.y + CGFloat(sin(a)) * 6 * u)
+            var star = Path()
+            for k in 0..<10 {
+                let r = (k % 2 == 0 ? 5.5 : 2.3) * Double(u)
+                let ang = Double(k) * .pi / 5 - .pi / 2 + t * 4
+                let q = CGPoint(x: p.x + CGFloat(cos(ang) * r), y: p.y + CGFloat(sin(ang) * r))
+                if k == 0 { star.move(to: q) } else { star.addLine(to: q) }
+            }
+            star.closeSubpath()
+            ctx.fill(star, with: .color(Color(red: 1, green: 0.88, blue: 0.3)))
+        }
+    }
+
+    /// Anime-Stresslinien am Kopf, optional mit „!!“.
+    private func drawPanicMarks(_ ctx: GraphicsContext, head: CGPoint, u: CGFloat, t: Double, exclaim: Bool) {
+        let pulse = 1 + 0.15 * sin(t * 30)
+        for i in 0..<3 {
+            let a = -Double.pi / 2 + Double(i - 1) * 0.55
+            var l = Path()
+            l.move(to: CGPoint(x: head.x + CGFloat(cos(a)) * 26 * u, y: head.y + CGFloat(sin(a)) * 26 * u))
+            l.addLine(to: CGPoint(x: head.x + CGFloat(cos(a) * 36 * pulse) * u, y: head.y + CGFloat(sin(a) * 36 * pulse) * u))
+            ctx.stroke(l, with: .color(.white.opacity(0.85)), style: StrokeStyle(lineWidth: 2 * u, lineCap: .round))
+        }
+        if exclaim {
+            ctx.draw(Text("!!").font(.system(size: 20 * u, weight: .black)).foregroundColor(Theme.severe),
+                     at: CGPoint(x: head.x + 30 * u, y: head.y - 26 * u + CGFloat(sin(t * 25)) * 2 * u))
+        }
+    }
+
+    /// Werkzeug, das Mia im hohen Bogen aus der Kiste wirft.
+    private func drawFlyingTools(_ ctx: GraphicsContext, from origin: CGPoint, u: CGFloat, t: Double) {
+        let interval = 0.42
+        let current = floor(t / interval)
+        for k in 0..<4 {
+            let n = current - Double(k)
+            let age = t - n * interval
+            guard age >= 0, age < 1.4 else { continue }
+            let seed = sin(n * 12.9898) * 43758.5453
+            let r = seed - floor(seed)
+            let vx = (-60 - 70 * r) * Double(u)
+            let vy = (-150 - 50 * r) * Double(u)
+            let g = 260.0 * Double(u)
+            let p = CGPoint(x: origin.x + CGFloat(vx * age), y: origin.y + CGFloat(vy * age + g * age * age))
+            var c = ctx
+            c.opacity = 1 - max(0, (age - 1.1) / 0.3)
+            c.translateBy(x: p.x, y: p.y)
+            c.rotate(by: .radians(age * 14 * (r > 0.5 ? 1 : -1)))
+            c.scaleBy(x: u, y: u)
+            let ink = GraphicsContext.Shading.color(Self.outline)
+            switch Int(r * 3) {
+            case 0: // Schraubenzieher
+                let grip = Path(roundedRect: CGRect(x: -10, y: -3.5, width: 10, height: 7), cornerRadius: 3)
+                c.fill(grip, with: .color(Color(red: 0.9, green: 0.2, blue: 0.25)))
+                c.stroke(grip, with: ink, lineWidth: 1.5)
+                c.fill(Path(CGRect(x: 0, y: -1.2, width: 14, height: 2.4)), with: .color(Color(white: 0.8)))
+            case 1: // Schraubenschlüssel
+                c.fill(Path(roundedRect: CGRect(x: -10, y: -2.5, width: 20, height: 5), cornerRadius: 2.5), with: .color(Color(white: 0.8)))
+                c.stroke(Path(ellipseIn: CGRect(x: 8, y: -5, width: 10, height: 10)), with: .color(Color(white: 0.8)), lineWidth: 3)
+            default: // Mutter
+                var hex = Path()
+                for i in 0..<6 {
+                    let a = Double(i) * .pi / 3
+                    let q = CGPoint(x: cos(a) * 6, y: sin(a) * 6)
+                    if i == 0 { hex.move(to: q) } else { hex.addLine(to: q) }
+                }
+                hex.closeSubpath()
+                c.fill(hex, with: .color(Color(white: 0.7)))
+                c.stroke(hex, with: ink, lineWidth: 1.4)
+                c.fill(Path(ellipseIn: CGRect(x: -2.2, y: -2.2, width: 4.4, height: 4.4)), with: .color(Color(white: 0.2)))
+            }
+        }
     }
 
     // MARK: - Figuren
@@ -188,14 +320,19 @@ struct MechanicsLoader: View {
     /// Zeichnet einen Chibi-Mechaniker (großer Kopf, große Augen, Cel-Shading mit Kontur).
     /// `feet` = Mittelpunkt zwischen den Füßen, Figur ist ca. 100 Einheiten hoch.
     private func drawMechanic(_ base: GraphicsContext, _ m: Mechanic, feet: CGPoint, scale: CGFloat, facing: CGFloat,
-                              walk: Double, armAngle: Double, t: Double, bob: Double = 0, sweat: Bool = false) {
+                              walk: Double, armAngle: Double, t: Double, bob: Double = 0, tilt: Double = 0,
+                              panic: Bool = false, backArm: Double? = nil, lift: CGFloat = 0, sweat: Bool = false,
+                              dizzy: Bool = false) {
         // Schatten
-        base.fill(Path(ellipseIn: CGRect(x: feet.x - 18 * scale, y: feet.y - 3 * scale, width: 36 * scale, height: 7 * scale)),
+        let shadowW = 36 * scale * (1 - min(lift, 30) / 60)
+        base.fill(Path(ellipseIn: CGRect(x: feet.x - shadowW / 2 + CGFloat(sin(tilt)) * 40 * scale * facing,
+                                         y: feet.y - 3 * scale, width: shadowW, height: 7 * scale)),
                   with: .color(.black.opacity(0.35)))
 
         var c = base
         let bounce = walk == 0 ? bob : -abs(sin(walk)) * 3
-        c.translateBy(x: feet.x, y: feet.y + bounce * scale)
+        c.translateBy(x: feet.x, y: feet.y + (CGFloat(bounce) - lift) * scale)
+        c.rotate(by: .radians(tilt * Double(facing)))
         c.scaleBy(x: facing * scale, y: scale)
         let line = StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
         let ink = GraphicsContext.Shading.color(Self.outline)
@@ -222,7 +359,7 @@ struct MechanicsLoader: View {
         }
 
         // hinterer Arm
-        _ = limb(from: CGPoint(x: -9, y: -48), angle: walk == 0 ? -0.25 : -sin(walk) * 0.6, length: 18, width: 7, color: suitDark)
+        _ = limb(from: CGPoint(x: -9, y: -48), angle: backArm ?? (walk == 0 ? -0.25 : -sin(walk) * 0.6), length: 18, width: 7, color: suitDark)
 
         // Körper (Overall)
         let body = Path(roundedRect: CGRect(x: -14, y: -54, width: 28, height: 32), cornerRadius: 11)
@@ -301,10 +438,25 @@ struct MechanicsLoader: View {
             c.stroke(gloss, with: .color(.white.opacity(0.6)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
         }
 
-        // Augen (große Anime-Augen mit zwei Glanzpunkten, blinzeln gelegentlich)
+        // Augen: normal große Anime-Augen; in Panik weiße Kulleraugen mit winzigen zitternden Pupillen; nach Sturz Spiralen
         let blink = fmod(t + Double(feet.x) * 0.01, 3.7) < 0.12
         for ex in [CGFloat(-3), CGFloat(11)] {
-            if blink {
+            if dizzy {
+                var spiral = Path()
+                for i in 0...20 {
+                    let a = Double(i) * 0.6 + t * 12
+                    let r = 0.25 * Double(i)
+                    let q = CGPoint(x: ex + CGFloat(cos(a) * r), y: -72 + CGFloat(sin(a) * r))
+                    if i == 0 { spiral.move(to: q) } else { spiral.addLine(to: q) }
+                }
+                c.stroke(spiral, with: ink, lineWidth: 1.4)
+            } else if panic {
+                let eye = CGRect(x: ex - 5, y: -80, width: 10, height: 13)
+                c.fill(Path(ellipseIn: eye), with: .color(.white))
+                c.stroke(Path(ellipseIn: eye), with: ink, lineWidth: 1.8)
+                let jx = CGFloat(sin(t * 61 + Double(ex))) * 1.4, jy = CGFloat(cos(t * 53)) * 1.2
+                c.fill(Path(ellipseIn: CGRect(x: ex - 1.6 + jx, y: -74.5 + jy, width: 3.2, height: 3.2)), with: ink)
+            } else if blink {
                 var lid = Path()
                 lid.move(to: CGPoint(x: ex - 4, y: -71))
                 lid.addQuadCurve(to: CGPoint(x: ex + 4, y: -71), control: CGPoint(x: ex, y: -68))
@@ -319,11 +471,26 @@ struct MechanicsLoader: View {
             }
         }
         if m.blush {
-            c.fill(Path(ellipseIn: CGRect(x: -9, y: -66, width: 6, height: 3)), with: .color(Color.pink.opacity(0.45)))
-            c.fill(Path(ellipseIn: CGRect(x: 14, y: -66, width: 6, height: 3)), with: .color(Color.pink.opacity(0.45)))
+            let blushColor = panic ? Color.blue.opacity(0.35) : Color.pink.opacity(0.45)
+            c.fill(Path(ellipseIn: CGRect(x: -9, y: -66, width: 6, height: 3)), with: .color(blushColor))
+            c.fill(Path(ellipseIn: CGRect(x: 14, y: -66, width: 6, height: 3)), with: .color(blushColor))
         }
-        // Mund: arbeitet konzentriert (kleines „o“) oder grinst
-        if armAngle > 0.9 && m.tool == .wrench {
+        if panic || dizzy {
+            // weit aufgerissener Schreimund mit Zunge, „wackelt“ beim Schreien
+            let open = 5 + 2 * CGFloat(abs(sin(t * 28)))
+            let mouthRect = CGRect(x: 1, y: -66, width: 11, height: open)
+            c.fill(Path(roundedRect: mouthRect, cornerRadius: 3), with: .color(Color(red: 0.35, green: 0.05, blue: 0.1)))
+            c.fill(Path(ellipseIn: CGRect(x: 4, y: mouthRect.maxY - 3, width: 6, height: 3)), with: .color(Color(red: 1, green: 0.45, blue: 0.5)))
+            c.stroke(Path(roundedRect: mouthRect, cornerRadius: 3), with: ink, lineWidth: 1.6)
+            // blaue Schreck-Schraffur auf der Stirn
+            for i in 0..<3 {
+                var l = Path()
+                let x = CGFloat(-6 + i * 6)
+                l.move(to: CGPoint(x: x, y: -90))
+                l.addLine(to: CGPoint(x: x, y: -84))
+                c.stroke(l, with: .color(Color.blue.opacity(0.5)), lineWidth: 1.4)
+            }
+        } else if armAngle > 0.9 && m.tool == .wrench {
             c.fill(Path(ellipseIn: CGRect(x: 5, y: -65, width: 4, height: 4)), with: ink)
         } else {
             var mouth = Path()
@@ -331,15 +498,19 @@ struct MechanicsLoader: View {
             mouth.addQuadCurve(to: CGPoint(x: 10, y: -64), control: CGPoint(x: 6.5, y: -60))
             c.stroke(mouth, with: ink, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
         }
-        // Schweißtropfen
-        if sweat {
-            let drop = fmod(t * 1.5, 1)
-            var d = Path()
-            let dx: CGFloat = -22, dy = -88 + CGFloat(drop) * 10
-            d.move(to: CGPoint(x: dx, y: dy - 5))
-            d.addQuadCurve(to: CGPoint(x: dx, y: dy + 4), control: CGPoint(x: dx - 5, y: dy + 2))
-            d.addQuadCurve(to: CGPoint(x: dx, y: dy - 5), control: CGPoint(x: dx + 5, y: dy + 2))
-            c.fill(d, with: .color(Color(red: 0.6, green: 0.85, blue: 1).opacity(1 - drop)))
+        // Schweißtropfen – in Panik fliegen mehrere vom Kopf weg
+        if sweat || panic {
+            for i in 0..<(panic ? 3 : 1) {
+                let drop = fmod(t * (panic ? 2.4 : 1.5) + Double(i) / 3, 1)
+                let side: CGFloat = i == 1 ? 1 : -1
+                let dx = side * (22 + CGFloat(drop) * 14), dy = -90 - CGFloat(sin(drop * .pi)) * 12 + CGFloat(drop) * 10
+                var d = Path()
+                d.move(to: CGPoint(x: dx, y: dy - 5))
+                d.addQuadCurve(to: CGPoint(x: dx, y: dy + 4), control: CGPoint(x: dx - 5, y: dy + 2))
+                d.addQuadCurve(to: CGPoint(x: dx, y: dy - 5), control: CGPoint(x: dx + 5, y: dy + 2))
+                c.fill(d, with: .color(Color(red: 0.6, green: 0.85, blue: 1).opacity(1 - drop)))
+                c.stroke(d, with: .color(Self.outline.opacity(0.6 * (1 - drop))), lineWidth: 1)
+            }
         }
 
         // vorderer Arm mit Werkzeug
@@ -379,7 +550,9 @@ struct MechanicsLoader: View {
     private func drawEngine(_ ctx: GraphicsContext, center: CGPoint, u: CGFloat, t: Double) {
         var c = ctx
         // Motor läuft leicht unruhig
-        c.translateBy(x: center.x + CGFloat(sin(t * 38)) * 0.6 * u, y: center.y + CGFloat(cos(t * 31)) * 0.5 * u)
+        let rattle = 0.6 + 2.2 * max(0, sin(t * 2.3)) // Motor bockt immer wieder heftig
+        c.translateBy(x: center.x + CGFloat(sin(t * 38) * rattle) * u, y: center.y + CGFloat(cos(t * 31) * rattle * 0.8) * u)
+        c.rotate(by: .radians(sin(t * 29) * 0.02 * rattle))
         c.scaleBy(x: u, y: u)
         let ink = GraphicsContext.Shading.color(Self.outline)
         let line = StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
