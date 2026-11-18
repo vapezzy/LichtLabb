@@ -197,6 +197,15 @@ struct SettingsTab: View {
                     row("Diagnose-Konsole", icon: "terminal.fill", detail: "Befehle & Protokoll")
                 }
                 Divider().overlay(.white.opacity(0.08))
+                NavigationLink {
+                    DPFView()
+                        #if os(iOS)
+                        .toolbar(.hidden, for: .navigationBar)
+                        #endif
+                } label: {
+                    row("Rußfilter", icon: "aqi.medium", detail: "Live-Werte")
+                }
+                Divider().overlay(.white.opacity(0.08))
                 Button {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .home }
                     scanner.runDemoScan()

@@ -6,6 +6,7 @@ struct RideReaderApp: App {
     @StateObject private var ble: BLEManager
     @StateObject private var session: ELMSession
     @StateObject private var scanner: FaultScanner
+    @StateObject private var dpf: DPFMonitor
 
     init() {
         let ble = BLEManager(startBluetooth: LaunchOptions.shot == nil)
@@ -13,6 +14,7 @@ struct RideReaderApp: App {
         _ble = StateObject(wrappedValue: ble)
         _session = StateObject(wrappedValue: session)
         _scanner = StateObject(wrappedValue: FaultScanner(session: session))
+        _dpf = StateObject(wrappedValue: DPFMonitor(session: session))
     }
 
     var body: some Scene {
@@ -21,6 +23,7 @@ struct RideReaderApp: App {
                 .environmentObject(ble)
                 .environmentObject(session)
                 .environmentObject(scanner)
+                .environmentObject(dpf)
                 .preferredColorScheme(.dark)
         }
     }

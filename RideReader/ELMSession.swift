@@ -73,6 +73,8 @@ final class ELMSession: ObservableObject {
     private var currentECU: UInt8?
     /// Tester-Header und Flow-Control für die BMW-Adressierung sind gesetzt (gilt bis OBD-Modus oder Neustart).
     private var baseAddressed = false
+    /// Physische Adressierung des Motorsteuergeräts (7E0 → 7E8) für Messwerte aktiv
+    private var engineAddressed = false
 
     convenience init(ble: BLEManager) {
         self.init(transport: ble)
@@ -93,6 +95,7 @@ final class ELMSession: ObservableObject {
         isInitialized = false
         currentECU = nil
         baseAddressed = false
+        engineAddressed = false
         do {
             let reset = try await command("ATZ", timeout: 5)
             adapterInfo = reset.first { $0.uppercased().contains("ELM") || $0.lowercased().contains("vlinker") } ?? reset.last
@@ -176,6 +179,7 @@ final class ELMSession: ObservableObject {
         isInitialized = false
         currentECU = nil
         baseAddressed = false
+        engineAddressed = false
         info("Verbindung getrennt")
     }
 
@@ -196,6 +200,7 @@ final class ELMSession: ObservableObject {
             }
         }
         baseAddressed = true
+        engineAddressed = false
         currentECU = ecu
     }
 
@@ -248,6 +253,36 @@ final class ELMSession: ObservableObject {
         for cmd in ["ATCEA", "ATCRA", "ATFCSM0", "ATSH7DF"] { try await expectOK(cmd) }
         currentECU = nil
         baseAddressed = false
+        engineAddressed = false
+    }
+
+    // MARK: - Messwerte (nur lesen)
+
+    /// Liest einen genormten Messwert (OBD-II Modus 01) direkt vom Motorsteuergerät.
+    /// Liefert die Datenbytes nach `41 <PID>` oder nil, wenn das Steuergerät den Wert nicht kennt.
+    func readPID(_ pid: UInt8, quiet: Bool = true) async throws -> [UInt8]? {
+        try await useEngineAddressing(quiet: quiet)
+        let lines = try await command(String(format: "01%02X", pid), timeout: 2, quiet: quiet)
+        if lines.contains(where: { $0.contains("NO DATA") }) { return nil }
+        for message in ISOTP.messages(from: lines) where message.count >= 2 && message[0] == 0x41 && message[1] == pid {
+            return Array(message.dropFirst(2))
+        }
+        return nil
+    }
+
+    /// Standard-OBD-Header physisch auf das Motorsteuergerät: Anfrage an 7E0, nur Antworten von 7E8.
+    private func useEngineAddressing(quiet: Bool) async throws {
+        guard isInitialized else { throw SessionError.notInitialized }
+        guard !engineAddressed else { return }
+        for cmd in ["ATCEA", "ATFCSM0", "ATSH7E0", "ATCRA7E8"] {
+            let lines = try await command(cmd, quiet: quiet)
+            guard lines.contains(where: { $0.contains("OK") }) else {
+                throw SessionError.unexpected("\(cmd) → \(lines.joined(separator: " "))")
+            }
+        }
+        currentECU = nil
+        baseAddressed = false
+        engineAddressed = true
     }
 
     /// Sendet eine UDS-Anfrage und liefert die positive Antwort (ab dem Service-Byte).

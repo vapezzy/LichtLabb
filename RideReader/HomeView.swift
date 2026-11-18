@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var webLink: WebLink?
     @State private var showNotConnected = false
     @State private var showHealthy = false
+    @State private var showDPF = false
 
     private var finished: Bool {
         if case .finished = scanner.phase { return true }
@@ -92,6 +93,9 @@ struct HomeView: View {
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: showFaults)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: clearTarget)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: scanner.clearMessage)
+        .sheet(isPresented: $showDPF) {
+            DPFView()
+        }
         .sheet(item: $webLink) { link in
             WebSheet(url: link.url)
                 .ignoresSafeArea()
@@ -179,8 +183,45 @@ struct HomeView: View {
 
             ModePicker(mode: $scanner.mode)
                 .buildIn(3)
+
+            dpfTile
+                .buildIn(4)
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: showNotConnected)
+    }
+
+    /// Einstieg zur Rußfilter-Seite
+    private var dpfTile: some View {
+        Button {
+            Haptics.tap()
+            showDPF = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(LinearGradient(colors: [Theme.violet.opacity(0.35), Theme.magenta.opacity(0.2)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                    Image(systemName: "aqi.medium")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.brandGradient)
+                }
+                .frame(width: 46, height: 46)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Rußfilter")
+                        .font(Theme.rounded(17, weight: .bold))
+                    Text("Beladung, Temperaturen & Regeneration – live")
+                        .font(Theme.rounded(13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card(tint: Theme.violet)
+        }
+        .buttonStyle(PressableStyle())
     }
 
     private var notConnectedCard: some View {

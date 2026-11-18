@@ -9,36 +9,40 @@
 /* Begin PBXBuildFile section */
 		900000000000000000000001 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEManager.swift */; };
 		900000000000000000000002 /* ConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* ConsoleView.swift */; };
-		900000000000000000000003 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ELMSession.swift */; };
-		900000000000000000000004 /* FaultCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000004 /* FaultCatalog.swift */; };
-		900000000000000000000005 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* FaultScanner.swift */; };
-		900000000000000000000006 /* FaultViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* FaultViews.swift */; };
-		900000000000000000000007 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* Hex.swift */; };
-		900000000000000000000008 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* HomeView.swift */; };
-		900000000000000000000009 /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* IntroView.swift */; };
-		90000000000000000000000A /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* MechanicsLoader.swift */; };
-		90000000000000000000000B /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* Platform.swift */; };
-		90000000000000000000000C /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* RideReaderApp.swift */; };
-		90000000000000000000000D /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* SettingsTab.swift */; };
-		90000000000000000000000E /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* Theme.swift */; };
+		900000000000000000000003 /* DPFMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* DPFMonitor.swift */; };
+		900000000000000000000004 /* DPFView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000004 /* DPFView.swift */; };
+		900000000000000000000005 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* ELMSession.swift */; };
+		900000000000000000000006 /* FaultCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* FaultCatalog.swift */; };
+		900000000000000000000007 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* FaultScanner.swift */; };
+		900000000000000000000008 /* FaultViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* FaultViews.swift */; };
+		900000000000000000000009 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* Hex.swift */; };
+		90000000000000000000000A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* HomeView.swift */; };
+		90000000000000000000000B /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* IntroView.swift */; };
+		90000000000000000000000C /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* MechanicsLoader.swift */; };
+		90000000000000000000000D /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* Platform.swift */; };
+		90000000000000000000000E /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* RideReaderApp.swift */; };
+		90000000000000000000000F /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* SettingsTab.swift */; };
+		900000000000000000000010 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A00000000000000000000003 /* RideReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RideReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00000000000000000000001 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
 		F00000000000000000000002 /* ConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleView.swift; sourceTree = "<group>"; };
-		F00000000000000000000003 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
-		F00000000000000000000004 /* FaultCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultCatalog.swift; sourceTree = "<group>"; };
-		F00000000000000000000005 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
-		F00000000000000000000006 /* FaultViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultViews.swift; sourceTree = "<group>"; };
-		F00000000000000000000007 /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
-		F00000000000000000000008 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		F00000000000000000000009 /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000A /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
-		F0000000000000000000000B /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F0000000000000000000000C /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
-		F0000000000000000000000D /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
-		F0000000000000000000000E /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F00000000000000000000003 /* DPFMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPFMonitor.swift; sourceTree = "<group>"; };
+		F00000000000000000000004 /* DPFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPFView.swift; sourceTree = "<group>"; };
+		F00000000000000000000005 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
+		F00000000000000000000006 /* FaultCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultCatalog.swift; sourceTree = "<group>"; };
+		F00000000000000000000007 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
+		F00000000000000000000008 /* FaultViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultViews.swift; sourceTree = "<group>"; };
+		F00000000000000000000009 /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
+		F0000000000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000B /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000C /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
+		F0000000000000000000000D /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F0000000000000000000000E /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
+		F0000000000000000000000F /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		F00000000000000000000010 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,18 +69,20 @@
 			children = (
 				F00000000000000000000001 /* BLEManager.swift */,
 				F00000000000000000000002 /* ConsoleView.swift */,
-				F00000000000000000000003 /* ELMSession.swift */,
-				F00000000000000000000004 /* FaultCatalog.swift */,
-				F00000000000000000000005 /* FaultScanner.swift */,
-				F00000000000000000000006 /* FaultViews.swift */,
-				F00000000000000000000007 /* Hex.swift */,
-				F00000000000000000000008 /* HomeView.swift */,
-				F00000000000000000000009 /* IntroView.swift */,
-				F0000000000000000000000A /* MechanicsLoader.swift */,
-				F0000000000000000000000B /* Platform.swift */,
-				F0000000000000000000000C /* RideReaderApp.swift */,
-				F0000000000000000000000D /* SettingsTab.swift */,
-				F0000000000000000000000E /* Theme.swift */,
+				F00000000000000000000003 /* DPFMonitor.swift */,
+				F00000000000000000000004 /* DPFView.swift */,
+				F00000000000000000000005 /* ELMSession.swift */,
+				F00000000000000000000006 /* FaultCatalog.swift */,
+				F00000000000000000000007 /* FaultScanner.swift */,
+				F00000000000000000000008 /* FaultViews.swift */,
+				F00000000000000000000009 /* Hex.swift */,
+				F0000000000000000000000A /* HomeView.swift */,
+				F0000000000000000000000B /* IntroView.swift */,
+				F0000000000000000000000C /* MechanicsLoader.swift */,
+				F0000000000000000000000D /* Platform.swift */,
+				F0000000000000000000000E /* RideReaderApp.swift */,
+				F0000000000000000000000F /* SettingsTab.swift */,
+				F00000000000000000000010 /* Theme.swift */,
 			);
 			path = RideReader;
 			sourceTree = "<group>";
@@ -159,18 +165,20 @@
 			files = (
 				900000000000000000000001 /* BLEManager.swift in Sources */,
 				900000000000000000000002 /* ConsoleView.swift in Sources */,
-				900000000000000000000003 /* ELMSession.swift in Sources */,
-				900000000000000000000004 /* FaultCatalog.swift in Sources */,
-				900000000000000000000005 /* FaultScanner.swift in Sources */,
-				900000000000000000000006 /* FaultViews.swift in Sources */,
-				900000000000000000000007 /* Hex.swift in Sources */,
-				900000000000000000000008 /* HomeView.swift in Sources */,
-				900000000000000000000009 /* IntroView.swift in Sources */,
-				90000000000000000000000A /* MechanicsLoader.swift in Sources */,
-				90000000000000000000000B /* Platform.swift in Sources */,
-				90000000000000000000000C /* RideReaderApp.swift in Sources */,
-				90000000000000000000000D /* SettingsTab.swift in Sources */,
-				90000000000000000000000E /* Theme.swift in Sources */,
+				900000000000000000000003 /* DPFMonitor.swift in Sources */,
+				900000000000000000000004 /* DPFView.swift in Sources */,
+				900000000000000000000005 /* ELMSession.swift in Sources */,
+				900000000000000000000006 /* FaultCatalog.swift in Sources */,
+				900000000000000000000007 /* FaultScanner.swift in Sources */,
+				900000000000000000000008 /* FaultViews.swift in Sources */,
+				900000000000000000000009 /* Hex.swift in Sources */,
+				90000000000000000000000A /* HomeView.swift in Sources */,
+				90000000000000000000000B /* IntroView.swift in Sources */,
+				90000000000000000000000C /* MechanicsLoader.swift in Sources */,
+				90000000000000000000000D /* Platform.swift in Sources */,
+				90000000000000000000000E /* RideReaderApp.swift in Sources */,
+				90000000000000000000000F /* SettingsTab.swift in Sources */,
+				900000000000000000000010 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

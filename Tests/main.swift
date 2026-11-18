@@ -190,6 +190,23 @@ func run() async {
     let pickyRequests = picky.sim.received.filter { $0.hasPrefix("ATCEA") && $0.count > 5 }.count
     check(pickyRequests <= 2, "bricht sofort ab (\(pickyRequests) Versuche)")
 
+    print("Rußfilter-Werte dekodieren (SAE J1979)")
+    let support = DPFMonitor.decodeSupport(base: 0x60, data: [0x00, 0x00, 0x00, 0x21])
+    check(support == [0x7B, 0x80], "Bitmap 0160 → 7B, 80 (\(support.sorted()))")
+    var dpfReading = DPFMonitor.Reading()
+    DPFMonitor.apply(pid: 0x7A, data: [0x01, 0x01, 0x90, 0, 0, 0, 0], to: &dpfReading)
+    check(dpfReading.deltaPressure == 40, "Differenzdruck 0x0190 → 40 mbar (\(dpfReading.deltaPressure ?? -1))")
+    DPFMonitor.apply(pid: 0x7C, data: [0x03, 0x0F, 0xA0, 0x0B, 0xB8, 0, 0, 0, 0], to: &dpfReading)
+    check(dpfReading.inletTemp == 360 && dpfReading.outletTemp == 260, "Temperaturen 360 / 260 °C")
+    check(!dpfReading.regenerating, "360 °C → keine Regeneration")
+    DPFMonitor.apply(pid: 0x7C, data: [0x01, 0x15, 0x7C, 0, 0, 0, 0, 0, 0], to: &dpfReading)
+    check(dpfReading.regenerating, "510 °C vor dem Filter → Regeneration erkannt")
+    DPFMonitor.apply(pid: 0x8B, data: [0x01, 0x00, 0xFF, 0, 0x12, 0x01, 0x9C], to: &dpfReading)
+    check(dpfReading.regenActive == false && !dpfReading.regenerating, "Status vom Steuergerät hat Vorrang")
+    check(dpfReading.regenTrigger == 100 && dpfReading.averageDistance == 412, "Beladung 100 %, Ø 412 km")
+    DPFMonitor.apply(pid: 0x0C, data: [0x0C, 0xD0], to: &dpfReading)
+    check(dpfReading.rpm == 820, "Drehzahl 820 U/min")
+
     print(failures == 0 ? "\nAlle Tests bestanden." : "\n\(failures) Test(s) fehlgeschlagen.")
     exit(failures == 0 ? 0 : 1)
 }
