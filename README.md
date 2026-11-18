@@ -1,88 +1,53 @@
-# LichtLab – Lichtsteuerung für BMW F36
+# LichtLab – BMW-Diagnose für die F-Serie
 
-iPhone-App (iOS 16.4+), die sich per Bluetooth LE mit einem **vLinker BM+** verbindet und einzelne Leuchten
-über D-CAN per UDS (InputOutputControl, Dienst 0x2F) schaltet – mit einem 3D-Auto, auf dem du die Leuchten
-direkt antippst.
-
-| Übersicht | Front | Heck (OLED-Nachbau) |
-|---|---|---|
-| ![Übersicht](docs/overview.png) | ![Front](docs/front.png) | ![Heck](docs/rear_oled.png) |
-
-*(Renderings der 3D-Szene vom Mac, ohne die Bedienoberfläche.)*
+iPhone-App (iOS 16.4+), die sich per Bluetooth LE mit einem **vLinker BM+** (ELM327-kompatibel) verbindet und
+über D-CAN den **Fehlerspeicher aller Steuergeräte ausliest und löscht**. Getestet mit einem BMW F36.
 
 ## Funktionen
 
-- **3D-Auto (SceneKit):** Studio-Boden mit Spiegelung, HDR-Bloom, Vignette, kinoreife Kamerafahrten zwischen
-  Übersicht, Front und Heck, langsamer Orbit, mit dem Finger drehbar.
-- **Intro:** Kamera fliegt aus der Tiefenunschärfe heran, Titel blendet mit Blur ein und aus, die Lichter erwachen nacheinander.
-- **Gezielte Auswahl:** Leuchten am Auto antippen (pulsierender Ring) oder über die Chips unten – dann
-  „Einschalten“ / „Aus“. Der Power-Knopf schaltet alles aus und beendet die Diagnose-Sitzungen.
-- **Szenen:** Welcome, Goodbye, Lauflicht, Scanner, Warnblinker, Wechselblinker, Puls – plus „OLED Welcome“ bei OLED-Rückleuchten.
-- **Rückleuchten:** Original, LED-Nachrüstung (dynamischer Blinker) oder OLED-Nachbau (schmale Streifen,
-  Lauflicht-Blinker). Für weitere Nachrüst-Leuchten kannst du eigene Einträge mit Position am Auto anlegen.
-- **Vorschau-Modus:** Ohne Adapter läuft alles nur im 3D-Modell – zum Ausprobieren.
-- **Lackfarben:** Saphirschwarz, Alpinweiß, Estorilblau, Mineralgrau, Melbourne Rot, Glaciersilber.
-- **Musik (Tab „Musik“):** lokale Audiodatei wählen (MP3, M4A, WAV …), die Lichter pulsieren auf Bass, Mitten
-  oder Höhen. Empfindlichkeit einstellbar, Lichtgruppen wählbar (Angel Eyes, Rücklichter, Blinker, Nebel, Bremslicht).
-  Im 3D-Modell in Echtzeit; am Auto werden die Leuchten pro Beat kurz geschaltet (Verzögerung ca. 0,1–0,3 s).
-  Modus „Szene im Takt“: jeder Beat schaltet die gewählte Szene einen Schritt weiter.
-- **Licht-Profil:** Einstellungen → Leuchten einrichten → „Profil importieren“ richtet alle Leuchten auf einmal ein
-  (eine Zeile pro Leuchte: `Name; Steuergerät; DID; Steuerdaten; Positionen`). „Profil exportieren“ sichert es als Text.
-- **Fehlerspeicher (Tab „Fehler“):** liest die Fehler aller Steuergeräte aus – nur lesen, nichts wird gelöscht.
-  Schnell-Scan (bekannte F-Serien-Adressen) oder Vollscan (alle Adressen 01–7F), dazu die genormten
-  OBD-II-Codes (P0300 …), Fahrgestellnummer und ein Bericht zum Teilen. Mit „Beispiel ansehen“ auch ohne Auto.
-- **Diagnose-Konsole:** freie AT-/UDS-Befehle, Log teilen.
+- **Fehlerspeicher auslesen:** Schnell-Scan (bekannte F-Serien-Adressen, ca. 10 s) oder Vollscan (alle Adressen
+  01–7F, ca. 1 min). Pro Steuergerät die BMW-Fehlercodes mit Status (aktiv, gespeichert, sporadisch, Warnlampe),
+  dazu die genormten OBD-II-Codes (P0300 …) und die Fahrgestellnummer.
+- **Fehler löschen:** pro Steuergerät, „Alle Fehler löschen“ (alle Steuergeräte mit Einträgen) und OBD-II separat –
+  jeweils nur nach Sicherheitsabfrage. Danach wird automatisch neu ausgelesen; kommt ein Fehler sofort wieder,
+  sagt die App, dass die Ursache noch besteht.
+- **Bericht teilen:** alle Steuergeräte und Codes als Text, z. B. vor dem Löschen sichern.
+- **Beispielmodus:** Ansicht ohne Auto ausprobieren.
+- **Diagnose-Konsole:** freie AT-/UDS-Befehle, Protokoll teilen – hilfreich, wenn etwas nicht klappt.
 
 ## Installation mit TrollStore
 
-1. Auf GitHub ein neues Repository anlegen (darf privat sein) und **den ganzen Inhalt dieses Ordners** hochladen
-   – inklusive des versteckten Ordners `.github`.
-2. Im Repository auf **Actions** → „IPA für TrollStore bauen“. Der Build startet bei jedem Push auf `main`,
-   oder manuell über *Run workflow*. Dauer ca. 5 Minuten.
-3. Wenn der Lauf grün ist, liegt die neueste IPA immer hier:
-   https://github.com/vapezzy/LichtLabb/releases/latest/download/LichtLab.ipa
-4. Den Link auf dem iPhone in Safari öffnen → Datei laden → *Teilen* → **TrollStore** → Installieren.
+Die neueste IPA wird bei jedem Push automatisch gebaut (nachdem die Simulator-Tests bestanden sind):
 
-Keine Apple-ID, kein 7-Tage-Ablauf.
+https://github.com/vapezzy/LichtLabb/releases/latest/download/LichtLab.ipa
 
-## Erste Schritte am Auto
+Den Link auf dem iPhone in Safari öffnen → Datei laden → *Teilen* → **TrollStore** → Installieren.
 
-1. Zündung an (Start/Stopp-Knopf ohne Bremse), vLinker einstecken.
-2. Oben rechts auf **Vorschau** tippen → „Adapter suchen“ → vLinker wählen. Der Status wechselt auf **Live**.
-3. Zahnrad → *Diagnose-Konsole* → „Fahrgestellnr.“. Kommt `62 F1 90 …` mit deiner FIN zurück, steht die
-   Verbindung zum FRM (Adresse 72).
-4. Log über das Teilen-Symbol exportieren und an Claude schicken – damit geht's an die Licht-DIDs.
+## Benutzung
 
-## Noch offen
+1. Zündung an (Start/Stopp ohne Bremse), Motor aus, vLinker in die OBD-Buchse.
+2. Oben rechts auf **„Nicht verbunden“** tippen → „Adapter suchen“ → vLinker wählen.
+3. **Scan starten** – danach Steuergeräte antippen, um die Codes zu sehen.
+4. Zum Löschen: Steuergerät aufklappen → **Fehler löschen**, oder **Alle Fehler löschen**.
 
-- **Die DIDs für die einzelnen Leuchten sind unbekannt.** Bis sie eingetragen sind (Zahnrad → Leuchten
-  einrichten), zeigen die Chips ein Schraubenschlüssel-Symbol und schalten nur die Vorschau.
-- Geprüft wurde: Kompilieren gegen das macOS-SDK, der Antwort-Parser und die 3D-Szene (gerendert am Mac).
-  Der iOS-Build selbst läuft erst in GitHub Actions; am echten Auto ist noch nichts getestet.
+## Vor dem Löschen
 
-## Aufbau
+- Erst auslesen und den Bericht teilen – gelöschte Codes sind weg.
+- Löschen behebt keine Ursache. Kommt ein Fehler sofort wieder, besteht das Problem noch.
+- Airbag- und Bremsfehler nicht einfach löschen, sondern prüfen lassen.
+- OBD-II-Löschen (Modus 04) setzt die Bereitschaftstests zurück – vor einer AU/HU erst wieder ein Stück fahren.
+
+## Technik
 
 | Datei | Inhalt |
 |---|---|
-| `RootView.swift` | Hauptbildschirm: 3D-Auto, Glas-Panels, Intro, Szenen |
-| `CarScene.swift` | SceneKit-Szene: Karosserie, Leuchten, Kamera, Licht-Animationen |
-| `CarSceneView.swift` | SCNView mit Antippen und Drehen |
-| `LightController.swift` | Auswahl, Schalten, Szenen-Ablauf, Vorschau vs. Live |
-| `LightShow.swift` | Szenen-Definitionen |
-| `LightPreset.swift` | Leuchten, Positionen, Rückleuchten-Typ, Lackfarben |
-| `SettingsView.swift` | Einstellungen und Leuchten-Editor |
 | `BLEManager.swift` | Bluetooth-Verbindung zum Adapter (vLinker: Service 18F0) |
-| `ELMSession.swift` | ELM327-Befehle, BMW-Adressierung, UDS, Sitzungen |
-| `ConsoleView.swift`, `ConnectionView.swift` | Konsole und Adapter-Verbindung |
-| `MusicEngine.swift`, `MusicPanel.swift` | Audio-Wiedergabe, FFT-Analyse, Beat-Erkennung, Musik-Panel |
-| `FaultScanner.swift`, `FaultsView.swift` | Fehlerspeicher auslesen |
+| `ELMSession.swift` | ELM327-Befehle, BMW-Adressierung (Tester 6F1, erweiterte Adresse), UDS 19/14, OBD 03/07/04 |
+| `FaultScanner.swift` | Scan, Löschen mit Nachkontrolle, Bericht, Beispieldaten |
+| `FaultsView.swift`, `RootView.swift` | Oberfläche |
+| `ConsoleView.swift`, `ConnectionView.swift`, `SettingsView.swift` | Konsole, Verbindung, Einstellungen |
+| `Tests/` | ELM327/BMW-Simulator mit Ende-zu-Ende-Tests: `sh tools/run_tests.sh` |
 | `tools/generate_project.py` | Erzeugt das Xcode-Projekt neu (nach neuen Swift-Dateien ausführen) |
-| `.github/workflows/build-ipa.yml` | Baut die unsignierte IPA für TrollStore |
+| `.github/workflows/build-ipa.yml` | Tests + unsignierte IPA für TrollStore + Release |
 
-## Sicherheit
-
-- Nur im Stand. Lichtsteuerung über Diagnose ist im Straßenverkehr nicht zulässig.
-- Xenon-Abblendlicht und Fernlicht kommen absichtlich in keiner Szene vor – Brenner nicht schnell takten.
-- Die App schreibt nichts dauerhaft: `2F … 03` ist nur eine kurzzeitige Übersteuerung. Power-Knopf bzw.
-  Zündung aus gibt die Kontrolle ans Steuergerät zurück.
-- Keine Codier- oder Flash-Befehle (2E, 31, 34 …) in die Konsole tippen, wenn du nicht genau weißt, was sie tun.
+Die frühere Licht-, 3D- und Musik-Version liegt in der Git-Historie (bis Commit `8777094`).

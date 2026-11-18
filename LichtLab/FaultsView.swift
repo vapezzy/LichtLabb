@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Fehlerspeicher auslesen – reine Leseansicht, es wird nichts gelöscht.
+/// Fehlerspeicher auslesen und löschen. Gelöscht wird nur nach ausdrücklicher Bestätigung.
 struct FaultsView: View {
     @EnvironmentObject private var scanner: FaultScanner
     @EnvironmentObject private var session: ELMSession
@@ -8,7 +8,24 @@ struct FaultsView: View {
 
     @State private var expanded: Set<UInt8> = []
     @State private var showOnlyFaulty = false
+    @State private var pendingClear: ClearTarget?
     @Namespace private var namespace
+
+    /// Was nach der Sicherheitsabfrage gelöscht werden soll
+    enum ClearTarget: Identifiable {
+        case ecu(ECUResult), all, obd
+        var id: String {
+            switch self {
+            case .ecu(let result): return "ecu\(result.address)"
+            case .all: return "all"
+            case .obd: return "obd"
+            }
+        }
+    }
+
+    private var canClear: Bool { (session.isInitialized || scanner.isDemo) && !scanner.isBusy }
+    private var ecuFaultCount: Int { scanner.results.reduce(0) { $0 + $1.faults.count } }
+    private var faultyECUCount: Int { scanner.results.filter { !$0.faults.isEmpty }.count }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -32,8 +49,15 @@ struct FaultsView: View {
                         .transition(.blurFade)
                 }
 
+                if let message = scanner.clearMessage {
+                    clearBanner(message).transition(.blurFade)
+                }
+
                 if case .finished = scanner.phase {
                     summary.transition(.blurFade)
+                    if ecuFaultCount > 0 {
+                        clearAllButton.transition(.blurFade)
+                    }
                     resultsList.transition(.blurFade)
                 }
             }
@@ -42,8 +66,94 @@ struct FaultsView: View {
             .animation(.spring(response: 0.5, dampingFraction: 0.85), value: scanner.phase)
             .animation(.spring(response: 0.45, dampingFraction: 0.85), value: expanded)
             .animation(.spring(response: 0.45, dampingFraction: 0.85), value: showOnlyFaulty)
+            .animation(.spring(response: 0.45, dampingFraction: 0.85), value: scanner.clearMessage)
         }
         .foregroundStyle(.white)
+        .confirmationDialog(dialogTitle, isPresented: Binding(get: { pendingClear != nil }, set: { if !$0 { pendingClear = nil } }),
+                            titleVisibility: .visible, presenting: pendingClear) { target in
+            Button("Löschen", role: .destructive) { performClear(target) }
+            Button("Abbrechen", role: .cancel) {}
+        } message: { target in
+            Text(dialogMessage(target))
+        }
+    }
+
+    // MARK: - Löschen
+
+    private var dialogTitle: String {
+        switch pendingClear {
+        case .ecu(let result): return "\(result.name) löschen?"
+        case .all: return "Alle Fehler löschen?"
+        case .obd: return "OBD-II-Fehler löschen?"
+        case nil: return ""
+        }
+    }
+
+    private func dialogMessage(_ target: ClearTarget) -> String {
+        let hint = "Löschen behebt keine Ursache – kommt ein Fehler sofort wieder, besteht das Problem noch. Zündung an, Motor aus."
+        switch target {
+        case .ecu(let result):
+            return "\(result.faults.count) Eintr\(result.faults.count == 1 ? "ag" : "äge") in \(result.name) (\(result.hexAddress)) werden gelöscht. \(hint)"
+        case .all:
+            return "\(ecuFaultCount) Einträge in \(faultyECUCount) Steuergeräten werden gelöscht. OBD-II wird separat gelöscht. Tipp: vorher den Bericht teilen, damit die Codes nicht verloren gehen. \(hint)"
+        case .obd:
+            return "Setzt auch die Bereitschaftstests (Readiness) zurück – vor einer AU/HU erst wieder ein Stück fahren. \(hint)"
+        }
+    }
+
+    private func performClear(_ target: ClearTarget) {
+        Haptics.warning()
+        Task {
+            switch target {
+            case .ecu(let result): await scanner.clear(result.address)
+            case .all: await scanner.clearAll()
+            case .obd: await scanner.clearOBD()
+            }
+            Haptics.confirm()
+        }
+    }
+
+    private func clearBanner(_ message: String) -> some View {
+        let problem = message.hasPrefix("Fehler") || message.contains("wiedergekommen") || message.contains("nicht gelöscht")
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: problem ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .foregroundStyle(problem ? Color.orange : Color.green)
+            Text(message)
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                scanner.clearMessage = nil
+            } label: {
+                Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .glass(cornerRadius: 18)
+    }
+
+    private var clearAllButton: some View {
+        Button {
+            Haptics.tap()
+            pendingClear = .all
+        } label: {
+            HStack(spacing: 8) {
+                if scanner.isClearingAll {
+                    ProgressView().tint(.white)
+                    Text("Lösche …")
+                } else {
+                    Image(systemName: "trash")
+                    Text("Alle Fehler löschen")
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .foregroundStyle(.white)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.red.opacity(0.75)))
+        }
+        .buttonStyle(PressScaleStyle())
+        .disabled(!canClear)
+        .opacity(canClear || scanner.isClearingAll ? 1 : 0.5)
     }
 
     // MARK: - Kopf
@@ -65,8 +175,8 @@ struct FaultsView: View {
                 }
             }
             HStack(spacing: 6) {
-                Image(systemName: "lock.fill").font(.caption2)
-                Text("Nur auslesen – es wird nichts gelöscht oder verändert.")
+                Image(systemName: "checkmark.shield").font(.caption2)
+                Text("Auslesen ist ungefährlich. Gelöscht wird nur nach Bestätigung.")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -229,7 +339,11 @@ struct FaultsView: View {
             }
 
             ForEach(visibleResults) { result in
-                ECUCard(result: result, isExpanded: expanded.contains(result.address)) {
+                ECUCard(result: result,
+                        isExpanded: expanded.contains(result.address),
+                        isClearing: scanner.clearingAddress == result.address,
+                        canClear: canClear,
+                        onClear: { pendingClear = .ecu(result) }) {
                     Haptics.tap()
                     if expanded.contains(result.address) {
                         expanded.remove(result.address)
@@ -240,7 +354,10 @@ struct FaultsView: View {
                 .transition(.blurFade)
             }
 
-            OBDCard(codes: scanner.obdCodes)
+            OBDCard(codes: scanner.obdCodes,
+                    isClearing: scanner.clearingAddress == FaultScanner.obdAddress,
+                    canClear: canClear,
+                    onClear: { pendingClear = .obd })
 
             Text("BMW-Codes sind herstellerspezifisch. Die Bedeutung findest du z. B. per Suche nach „BMW <Code>“.")
                 .font(.caption2)
@@ -276,6 +393,9 @@ private struct StatTile: View {
 private struct ECUCard: View {
     let result: ECUResult
     let isExpanded: Bool
+    let isClearing: Bool
+    let canClear: Bool
+    let onClear: () -> Void
     let toggle: () -> Void
 
     var body: some View {
@@ -291,7 +411,9 @@ private struct ECUCard: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    if !result.faults.isEmpty {
+                    if isClearing {
+                        ProgressView().tint(.white)
+                    } else if !result.faults.isEmpty {
                         Image(systemName: "chevron.down")
                             .font(.caption.weight(.semibold))
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
@@ -307,6 +429,7 @@ private struct ECUCard: View {
                     ForEach(result.faults) { fault in
                         FaultRow(fault: fault)
                     }
+                    ClearButton(title: "Fehler löschen", isClearing: isClearing, enabled: canClear, action: onClear)
                 }
                 .padding(.top, 12)
                 .transition(.blurFade)
@@ -382,6 +505,9 @@ private struct FaultRow: View {
 
 private struct OBDCard: View {
     let codes: [FaultCode]
+    let isClearing: Bool
+    let canClear: Bool
+    let onClear: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -401,10 +527,44 @@ private struct OBDCard: View {
             ForEach(codes) { fault in
                 FaultRow(fault: fault)
             }
+            if !codes.isEmpty {
+                ClearButton(title: "OBD-II-Fehler löschen", isClearing: isClearing, enabled: canClear, action: onClear)
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glass(cornerRadius: 20)
+    }
+}
+
+private struct ClearButton: View {
+    let title: String
+    let isClearing: Bool
+    let enabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                if isClearing {
+                    ProgressView().tint(.red)
+                    Text("Lösche …")
+                } else {
+                    Image(systemName: "trash")
+                    Text(title)
+                }
+            }
+            .font(.caption.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .foregroundStyle(Color.red)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.red.opacity(0.14)))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled || isClearing ? 1 : 0.5)
     }
 }
 

@@ -83,6 +83,10 @@ final class ELMSimulator: ELMTransport {
     private func data(_ request: [UInt8]) -> String {
         // Standard-OBD über die Funktionsadresse
         if header == "7DF", extendedAddress == nil {
+            if request == [0x04] {
+                obdStored = []
+                return "7E80144"
+            }
             guard request == [0x03] || request == [0x07] else { return "NO DATA" }
             let codes = request == [0x03] ? obdStored : []
             var payload: [UInt8] = [request[0] + 0x40, UInt8(codes.count)]

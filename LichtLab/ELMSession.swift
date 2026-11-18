@@ -73,8 +73,6 @@ final class ELMSession: ObservableObject {
     private var currentECU: UInt8?
     /// Tester-Header und Flow-Control für die BMW-Adressierung sind gesetzt (gilt bis OBD-Modus oder Neustart).
     private var baseAddressed = false
-    private var activeSessions: Set<UInt8> = []
-    private var keepAlive: Task<Void, Never>?
 
     convenience init(ble: BLEManager) {
         self.init(transport: ble)
@@ -95,7 +93,6 @@ final class ELMSession: ObservableObject {
         isInitialized = false
         currentECU = nil
         baseAddressed = false
-        activeSessions = []
         do {
             let reset = try await command("ATZ", timeout: 5)
             adapterInfo = reset.first { $0.uppercased().contains("ELM") || $0.lowercased().contains("vlinker") } ?? reset.last
@@ -176,12 +173,9 @@ final class ELMSession: ObservableObject {
 
     private func handleDisconnect() {
         finish(.failure(SessionError.notConnected))
-        keepAlive?.cancel()
-        keepAlive = nil
         isInitialized = false
         currentECU = nil
         baseAddressed = false
-        activeSessions = []
         info("Verbindung getrennt")
     }
 
@@ -205,7 +199,7 @@ final class ELMSession: ObservableObject {
         currentECU = ecu
     }
 
-    // MARK: - Fehlerspeicher (nur lesen)
+    // MARK: - Fehlerspeicher lesen
 
     struct StoredDTC {
         let bytes: [UInt8]
@@ -229,11 +223,7 @@ final class ELMSession: ObservableObject {
 
     /// Liest die genormten OBD-II-Fehler (Modus 03 gespeichert, 07 sporadisch) über die Funktionsadresse 7DF.
     func readOBDCodes() async throws -> (stored: [UInt16], pending: [UInt16]) {
-        guard isInitialized else { throw SessionError.notInitialized }
-        // BMW-Adressierung ausschalten, Standard-OBD-Header setzen
-        for cmd in ["ATCEA", "ATCRA", "ATFCSM0", "ATSH7DF"] { try await expectOK(cmd) }
-        currentECU = nil
-        baseAddressed = false
+        try await useOBDAddressing()
 
         func read(_ mode: String, reply: UInt8) async throws -> [UInt16] {
             let lines = try await command(mode, timeout: 4)
@@ -250,6 +240,14 @@ final class ELMSession: ObservableObject {
             return codes
         }
         return (try await read("03", reply: 0x43), try await read("07", reply: 0x47))
+    }
+
+    /// BMW-Adressierung ausschalten, Standard-OBD-Header (Funktionsadresse 7DF) setzen.
+    private func useOBDAddressing() async throws {
+        guard isInitialized else { throw SessionError.notInitialized }
+        for cmd in ["ATCEA", "ATCRA", "ATFCSM0", "ATSH7DF"] { try await expectOK(cmd) }
+        currentECU = nil
+        baseAddressed = false
     }
 
     /// Sendet eine UDS-Anfrage und liefert die positive Antwort (ab dem Service-Byte).
@@ -280,50 +278,37 @@ final class ELMSession: ObservableObject {
         return response
     }
 
-    // MARK: - Lichter
+    // MARK: - Fehlerspeicher löschen
 
-    /// Schaltet eine Leuchte per InputOutputControlByIdentifier (0x2F).
-    /// An: 2F DID 03 <Daten> (shortTermAdjustment), Aus: 2F DID 00 (returnControlToECU).
-    func setLight(_ preset: LightPreset, on: Bool) async throws {
-        guard let ecu = preset.ecuByte, let did = preset.didBytes, let data = preset.controlBytes else {
-            throw SessionError.invalidHex
-        }
-        if on {
-            try await ensureExtendedSession(ecu)
-            try await uds([0x2F] + did + [0x03] + data, ecu: ecu)
-        } else {
-            try await uds([0x2F] + did + [0x00], ecu: ecu)
-        }
-    }
-
-    /// Zurück in die Default-Sitzung: Die Steuergeräte geben dann alle Ausgänge wieder selbst frei.
-    func endAllSessions() async {
-        keepAlive?.cancel()
-        keepAlive = nil
-        for ecu in activeSessions {
+    /// Löscht alle Fehler eines Steuergeräts: ClearDiagnosticInformation (14) für alle Gruppen (FF FF FF).
+    /// Lehnt das Steuergerät das in der normalen Sitzung ab, wird es einmal in der erweiterten Sitzung versucht.
+    func clearDTCs(ecu: UInt8) async throws {
+        let request: [UInt8] = [0x14, 0xFF, 0xFF, 0xFF]
+        do {
+            try await uds(request, ecu: ecu, timeout: 8)
+        } catch SessionError.negative(_, let code) where code == 0x7F {
+            try await uds([0x10, 0x03], ecu: ecu)
+            do {
+                try await uds(request, ecu: ecu, timeout: 8)
+            } catch {
+                _ = try? await uds([0x10, 0x01], ecu: ecu)
+                throw error
+            }
             _ = try? await uds([0x10, 0x01], ecu: ecu)
         }
-        activeSessions = []
     }
 
-    private func ensureExtendedSession(_ ecu: UInt8) async throws {
-        guard !activeSessions.contains(ecu) else { return }
-        try await uds([0x10, 0x03], ecu: ecu)
-        activeSessions.insert(ecu)
-        startKeepAlive()
-    }
-
-    /// Tester Present alle 2 s, sonst fällt das Steuergerät nach ca. 5 s in die Default-Sitzung zurück.
-    private func startKeepAlive() {
-        guard keepAlive == nil else { return }
-        keepAlive = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                guard let self, !Task.isCancelled else { return }
-                for ecu in self.activeSessions {
-                    _ = try? await self.uds([0x3E, 0x80], ecu: ecu, timeout: 1, quiet: true)
-                }
-            }
+    /// Löscht die genormten OBD-II-Fehler (Modus 04). Setzt auch die Bereitschaftstests (Readiness) zurück.
+    func clearOBDCodes() async throws {
+        try await useOBDAddressing()
+        let lines = try await command("04", timeout: 8)
+        let replies = ISOTP.messages(from: lines)
+        if replies.contains(where: { $0.first == 0x7F }) {
+            let code = replies.first { $0.first == 0x7F }.flatMap { $0.count >= 3 ? $0[2] : nil } ?? 0
+            throw SessionError.negative(service: 0x04, code: code)
+        }
+        guard replies.contains(where: { $0.first == 0x44 }) else {
+            throw lines.contains(where: { $0.contains("NO DATA") }) ? SessionError.noResponse : SessionError.unexpected(lines.joined(separator: " "))
         }
     }
 
@@ -351,24 +336,5 @@ final class ELMSession: ObservableObject {
     private func append(_ kind: LogEntry.Kind, _ text: String) {
         log.append(LogEntry(kind: kind, text: text))
         if log.count > 1000 { log.removeFirst(log.count - 1000) }
-    }
-
-
-/// Testet die Angel Eyes direkt über die DID 72 (Hex: 00 48) am FEM/FRM.
-    func testAngelEyes(ecu: UInt8, on: Bool, brightness: UInt8 = 0xFF) async {
-        let did: [UInt8] = [0x00, 0x48] // Dezimal 72 = Hex 00 48
-        do {
-            if on {
-                let request: [UInt8] = [0x2F] + did + [0x03, brightness]
-                try await uds(request, ecu: ecu)
-                info("Angel Eyes (DID 72) eingeschaltet.")
-            } else {
-                let request: [UInt8] = [0x2F] + did + [0x00]
-                try await uds(request, ecu: ecu)
-                info("Angel Eyes (DID 72) ausgeschaltet.")
-            }
-        } catch {
-            self.error("Fehler beim Schalten der Angel Eyes: \(error.localizedDescription)")
-        }
     }
 }

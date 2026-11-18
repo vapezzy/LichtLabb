@@ -26,10 +26,7 @@ struct ConnectionView: View {
                             Task { await session.initialize() }
                         }
                         Button("Trennen", role: .destructive) {
-                            Task {
-                                await session.endAllSessions()
-                                ble.disconnect()
-                            }
+                            ble.disconnect()
                         }
                     }
                 } else {

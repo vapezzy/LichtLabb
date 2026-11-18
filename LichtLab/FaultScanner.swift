@@ -40,7 +40,7 @@ struct ECUResult: Identifiable {
     var hexAddress: String { String(format: "0x%02X", address) }
 }
 
-/// Liest die Fehlerspeicher aller Steuergeräte aus – nur lesen, es wird nichts gelöscht oder verändert.
+/// Liest die Fehlerspeicher aller Steuergeräte aus und löscht sie auf Wunsch.
 @MainActor
 final class FaultScanner: ObservableObject {
     enum Mode: String, CaseIterable, Identifiable {
@@ -70,6 +70,13 @@ final class FaultScanner: ObservableObject {
     /// Grund, falls der Scan abgebrochen werden musste
     @Published private(set) var abortReason: String?
     @Published var mode: Mode = .quick
+    /// Steuergerät, das gerade gelöscht wird (0x00 = OBD-II, nil = keins)
+    @Published private(set) var clearingAddress: UInt8?
+    @Published private(set) var isClearingAll = false
+    /// Ergebnis des letzten Löschvorgangs für die Anzeige
+    @Published var clearMessage: String?
+
+    static let obdAddress: UInt8 = 0x00
 
     let session: ELMSession
     private var task: Task<Void, Never>?
@@ -117,9 +124,103 @@ final class FaultScanner: ObservableObject {
         task?.cancel()
     }
 
+    var isBusy: Bool { phase == .scanning || clearingAddress != nil || isClearingAll }
+
+    // MARK: - Löschen
+
+    /// Löscht den Fehlerspeicher eines Steuergeräts und liest ihn danach neu aus.
+    func clear(_ address: UInt8) async {
+        guard !isBusy else { return }
+        clearingAddress = address
+        clearMessage = await clearOne(address)
+        clearingAddress = nil
+    }
+
+    /// Löscht alle Steuergeräte mit Einträgen (ohne OBD-II) und liest jedes danach neu aus.
+    func clearAll() async {
+        guard !isBusy else { return }
+        isClearingAll = true
+        var cleared = 0, remaining = 0, failed = 0
+        for result in results where !result.faults.isEmpty {
+            clearingAddress = result.address
+            let message = await clearOne(result.address)
+            let after = results.first { $0.address == result.address }
+            if after?.error != nil || message.hasPrefix("Fehler") { failed += 1 }
+            else if after?.faults.isEmpty == true { cleared += 1 }
+            else { remaining += 1 }
+        }
+        clearingAddress = nil
+        isClearingAll = false
+        var parts = ["\(cleared) Steuergerät\(cleared == 1 ? "" : "e") gelöscht"]
+        if remaining > 0 { parts.append("bei \(remaining) sind Fehler sofort wiedergekommen (Ursache besteht noch)") }
+        if failed > 0 { parts.append("\(failed) konnte\(failed == 1 ? "" : "n") nicht gelöscht werden") }
+        clearMessage = parts.joined(separator: ", ") + "."
+    }
+
+    /// Löscht die genormten OBD-II-Fehler und liest sie neu aus.
+    func clearOBD() async {
+        guard !isBusy else { return }
+        clearingAddress = Self.obdAddress
+        defer { clearingAddress = nil }
+        if isDemo {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            obdCodes = []
+            clearMessage = "OBD-II-Fehler gelöscht (Beispieldaten)."
+            return
+        }
+        do {
+            try await session.clearOBDCodes()
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            let codes = try await session.readOBDCodes()
+            obdCodes = Self.obdFaults(codes)
+            clearMessage = obdCodes.isEmpty
+                ? "OBD-II-Fehler gelöscht."
+                : "OBD-II gelöscht, aber \(obdCodes.count) Fehler sofort wiedergekommen (Ursache besteht noch)."
+        } catch {
+            clearMessage = "Fehler beim Löschen von OBD-II: \(error.localizedDescription)"
+        }
+    }
+
+    private func clearOne(_ address: UInt8) async -> String {
+        guard let index = results.firstIndex(where: { $0.address == address }) else { return "" }
+        let name = results[index].name
+        if isDemo {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            results[index].faults = []
+            return "\(name): gelöscht (Beispieldaten)."
+        }
+        var clearError: Error?
+        do {
+            try await session.clearDTCs(ecu: address)
+        } catch {
+            clearError = error
+        }
+        // Immer neu auslesen – das zeigt, was wirklich noch im Speicher steht.
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        do {
+            let dtcs = try await session.readDTCs(ecu: address)
+            results[index].faults = dtcs.map { FaultCode(code: Hex.string($0.bytes, separator: ""), status: $0.status) }
+            results[index].error = nil
+        } catch {
+            results[index].error = error.localizedDescription
+        }
+        if let clearError, !results[index].faults.isEmpty {
+            return "Fehler beim Löschen (\(name)): \(clearError.localizedDescription)"
+        }
+        return results[index].faults.isEmpty
+            ? "\(name): Fehlerspeicher gelöscht."
+            : "\(name): \(results[index].faults.count) Fehler sofort wiedergekommen – die Ursache besteht noch."
+    }
+
+    static func obdFaults(_ codes: (stored: [UInt16], pending: [UInt16])) -> [FaultCode] {
+        codes.stored.map { FaultCode(code: FaultCode.obdString($0), status: 0x08, isOBD: true) }
+            + codes.pending.map { FaultCode(code: FaultCode.obdString($0), status: 0x04, isOBD: true) }
+    }
+
     private func scan() async {
         isDemo = false
         abortReason = nil
+        clearMessage = nil
         results = []
         obdCodes = []
         vin = nil
@@ -168,8 +269,7 @@ final class FaultScanner: ObservableObject {
         if !Task.isCancelled {
             currentStep = "OBD-II Motor & Abgas"
             if let codes = try? await session.readOBDCodes() {
-                obdCodes = codes.stored.map { FaultCode(code: FaultCode.obdString($0), status: 0x08, isOBD: true) }
-                    + codes.pending.map { FaultCode(code: FaultCode.obdString($0), status: 0x04, isOBD: true) }
+                obdCodes = Self.obdFaults(codes)
             }
         }
         try? await session.setResponseTimeout(0x32)
@@ -183,6 +283,8 @@ final class FaultScanner: ObservableObject {
     /// Beispieldaten, um die Ansicht ohne Auto auszuprobieren.
     func loadDemo() {
         isDemo = true
+        clearMessage = nil
+        abortReason = nil
         vin = "WBA4A31070GXXXXXX"
         results = [
             ECUResult(address: 0x12, name: Self.name(for: 0x12), faults: [

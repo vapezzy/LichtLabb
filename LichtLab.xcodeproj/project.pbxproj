@@ -7,50 +7,34 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		900000000000000000000001 /* AudioDocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* AudioDocumentPicker.swift */; };
-		900000000000000000000002 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* BLEManager.swift */; };
-		900000000000000000000003 /* CarScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* CarScene.swift */; };
-		900000000000000000000004 /* CarSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000004 /* CarSceneView.swift */; };
-		900000000000000000000005 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* ConnectionView.swift */; };
-		900000000000000000000006 /* ConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* ConsoleView.swift */; };
-		900000000000000000000007 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* ELMSession.swift */; };
-		900000000000000000000008 /* Effects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* Effects.swift */; };
-		900000000000000000000009 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* FaultScanner.swift */; };
-		90000000000000000000000A /* FaultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* FaultsView.swift */; };
-		90000000000000000000000B /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* Hex.swift */; };
-		90000000000000000000000C /* LichtLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* LichtLabApp.swift */; };
-		90000000000000000000000D /* LightController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* LightController.swift */; };
-		90000000000000000000000E /* LightPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LightPreset.swift */; };
-		90000000000000000000000F /* LightShow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* LightShow.swift */; };
-		900000000000000000000010 /* MusicEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* MusicEngine.swift */; };
-		900000000000000000000011 /* MusicPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* MusicPanel.swift */; };
-		900000000000000000000012 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* Platform.swift */; };
-		900000000000000000000013 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* RootView.swift */; };
-		900000000000000000000014 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* SettingsView.swift */; };
+		900000000000000000000001 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEManager.swift */; };
+		900000000000000000000002 /* ConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* ConnectionView.swift */; };
+		900000000000000000000003 /* ConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ConsoleView.swift */; };
+		900000000000000000000004 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000004 /* ELMSession.swift */; };
+		900000000000000000000005 /* Effects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* Effects.swift */; };
+		900000000000000000000006 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* FaultScanner.swift */; };
+		900000000000000000000007 /* FaultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* FaultsView.swift */; };
+		900000000000000000000008 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* Hex.swift */; };
+		900000000000000000000009 /* LichtLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* LichtLabApp.swift */; };
+		90000000000000000000000A /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* Platform.swift */; };
+		90000000000000000000000B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* RootView.swift */; };
+		90000000000000000000000C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A00000000000000000000003 /* LichtLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LichtLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F00000000000000000000001 /* AudioDocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDocumentPicker.swift; sourceTree = "<group>"; };
-		F00000000000000000000002 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
-		F00000000000000000000003 /* CarScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarScene.swift; sourceTree = "<group>"; };
-		F00000000000000000000004 /* CarSceneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarSceneView.swift; sourceTree = "<group>"; };
-		F00000000000000000000005 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
-		F00000000000000000000006 /* ConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleView.swift; sourceTree = "<group>"; };
-		F00000000000000000000007 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
-		F00000000000000000000008 /* Effects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Effects.swift; sourceTree = "<group>"; };
-		F00000000000000000000009 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
-		F0000000000000000000000A /* FaultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultsView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000B /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
-		F0000000000000000000000C /* LichtLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichtLabApp.swift; sourceTree = "<group>"; };
-		F0000000000000000000000D /* LightController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightController.swift; sourceTree = "<group>"; };
-		F0000000000000000000000E /* LightPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightPreset.swift; sourceTree = "<group>"; };
-		F0000000000000000000000F /* LightShow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightShow.swift; sourceTree = "<group>"; };
-		F00000000000000000000010 /* MusicEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicEngine.swift; sourceTree = "<group>"; };
-		F00000000000000000000011 /* MusicPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPanel.swift; sourceTree = "<group>"; };
-		F00000000000000000000012 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F00000000000000000000013 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		F00000000000000000000014 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F00000000000000000000001 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
+		F00000000000000000000002 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
+		F00000000000000000000003 /* ConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleView.swift; sourceTree = "<group>"; };
+		F00000000000000000000004 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
+		F00000000000000000000005 /* Effects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Effects.swift; sourceTree = "<group>"; };
+		F00000000000000000000006 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
+		F00000000000000000000007 /* FaultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultsView.swift; sourceTree = "<group>"; };
+		F00000000000000000000008 /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
+		F00000000000000000000009 /* LichtLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichtLabApp.swift; sourceTree = "<group>"; };
+		F0000000000000000000000A /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F0000000000000000000000B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,26 +59,18 @@
 		B00000000000000000000002 /* LichtLab */ = {
 			isa = PBXGroup;
 			children = (
-				F00000000000000000000001 /* AudioDocumentPicker.swift */,
-				F00000000000000000000002 /* BLEManager.swift */,
-				F00000000000000000000003 /* CarScene.swift */,
-				F00000000000000000000004 /* CarSceneView.swift */,
-				F00000000000000000000005 /* ConnectionView.swift */,
-				F00000000000000000000006 /* ConsoleView.swift */,
-				F00000000000000000000007 /* ELMSession.swift */,
-				F00000000000000000000008 /* Effects.swift */,
-				F00000000000000000000009 /* FaultScanner.swift */,
-				F0000000000000000000000A /* FaultsView.swift */,
-				F0000000000000000000000B /* Hex.swift */,
-				F0000000000000000000000C /* LichtLabApp.swift */,
-				F0000000000000000000000D /* LightController.swift */,
-				F0000000000000000000000E /* LightPreset.swift */,
-				F0000000000000000000000F /* LightShow.swift */,
-				F00000000000000000000010 /* MusicEngine.swift */,
-				F00000000000000000000011 /* MusicPanel.swift */,
-				F00000000000000000000012 /* Platform.swift */,
-				F00000000000000000000013 /* RootView.swift */,
-				F00000000000000000000014 /* SettingsView.swift */,
+				F00000000000000000000001 /* BLEManager.swift */,
+				F00000000000000000000002 /* ConnectionView.swift */,
+				F00000000000000000000003 /* ConsoleView.swift */,
+				F00000000000000000000004 /* ELMSession.swift */,
+				F00000000000000000000005 /* Effects.swift */,
+				F00000000000000000000006 /* FaultScanner.swift */,
+				F00000000000000000000007 /* FaultsView.swift */,
+				F00000000000000000000008 /* Hex.swift */,
+				F00000000000000000000009 /* LichtLabApp.swift */,
+				F0000000000000000000000A /* Platform.swift */,
+				F0000000000000000000000B /* RootView.swift */,
+				F0000000000000000000000C /* SettingsView.swift */,
 			);
 			path = LichtLab;
 			sourceTree = "<group>";
@@ -175,26 +151,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				900000000000000000000001 /* AudioDocumentPicker.swift in Sources */,
-				900000000000000000000002 /* BLEManager.swift in Sources */,
-				900000000000000000000003 /* CarScene.swift in Sources */,
-				900000000000000000000004 /* CarSceneView.swift in Sources */,
-				900000000000000000000005 /* ConnectionView.swift in Sources */,
-				900000000000000000000006 /* ConsoleView.swift in Sources */,
-				900000000000000000000007 /* ELMSession.swift in Sources */,
-				900000000000000000000008 /* Effects.swift in Sources */,
-				900000000000000000000009 /* FaultScanner.swift in Sources */,
-				90000000000000000000000A /* FaultsView.swift in Sources */,
-				90000000000000000000000B /* Hex.swift in Sources */,
-				90000000000000000000000C /* LichtLabApp.swift in Sources */,
-				90000000000000000000000D /* LightController.swift in Sources */,
-				90000000000000000000000E /* LightPreset.swift in Sources */,
-				90000000000000000000000F /* LightShow.swift in Sources */,
-				900000000000000000000010 /* MusicEngine.swift in Sources */,
-				900000000000000000000011 /* MusicPanel.swift in Sources */,
-				900000000000000000000012 /* Platform.swift in Sources */,
-				900000000000000000000013 /* RootView.swift in Sources */,
-				900000000000000000000014 /* SettingsView.swift in Sources */,
+				900000000000000000000001 /* BLEManager.swift in Sources */,
+				900000000000000000000002 /* ConnectionView.swift in Sources */,
+				900000000000000000000003 /* ConsoleView.swift in Sources */,
+				900000000000000000000004 /* ELMSession.swift in Sources */,
+				900000000000000000000005 /* Effects.swift in Sources */,
+				900000000000000000000006 /* FaultScanner.swift in Sources */,
+				900000000000000000000007 /* FaultsView.swift in Sources */,
+				900000000000000000000008 /* Hex.swift in Sources */,
+				900000000000000000000009 /* LichtLabApp.swift in Sources */,
+				90000000000000000000000A /* Platform.swift in Sources */,
+				90000000000000000000000B /* RootView.swift in Sources */,
+				90000000000000000000000C /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

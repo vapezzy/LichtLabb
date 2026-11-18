@@ -49,15 +49,3 @@ extension View {
             )
     }
 }
-
-extension LightTint {
-    var color: Color {
-        Color(red: rgb.r, green: rgb.g, blue: rgb.b)
-    }
-}
-
-extension PaintColor {
-    var color: Color {
-        Color(red: rgb.r, green: rgb.g, blue: rgb.b)
-    }
-}

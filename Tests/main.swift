@@ -11,48 +11,84 @@ func check(_ condition: Bool, _ message: String) {
 
 let vin = Array("WBA4A31070GTEST123".utf8)
 
+/// Zustand eines simulierten Steuergeräts: Fehlerspeicher und aktive Sitzung.
+final class ECUState {
+    var dtcs: [[UInt8]]
+    var session: UInt8 = 0x01
+    /// Fehler kommt nach dem Löschen sofort wieder (Ursache besteht noch)
+    var sticky = false
+    /// Löschen nur in der erweiterten Sitzung erlaubt
+    var needsExtendedSession = false
+
+    init(dtcs: [[UInt8]]) { self.dtcs = dtcs }
+
+    func respond(_ request: [UInt8], extra: (([UInt8]) -> [UInt8]?)? = nil) -> [UInt8]? {
+        switch request.first {
+        case 0x19:
+            return [0x59, 0x02, 0xFF] + dtcs.flatMap { $0 }
+        case 0x14:
+            if needsExtendedSession && session != 0x03 { return [0x7F, 0x14, 0x7F] }
+            if !sticky { dtcs = [] }
+            return [0x54]
+        case 0x10:
+            session = request[1]
+            return [0x50, request[1], 0x00, 0x32, 0x01, 0xF4]
+        default:
+            return extra?(request) ?? [0x7F, request[0], 0x11]
+        }
+    }
+}
+
+struct Car {
+    let sim: ELMSimulator
+    let dme: ECUState
+    let dsc: ECUState
+    let fem: ECUState
+}
+
 @MainActor
-func makeCar() -> ELMSimulator {
+func makeCar() -> Car {
     let sim = ELMSimulator()
     // DME mit zwei Fehlern und Fahrgestellnummer (mehrteilige Antworten)
+    let dme = ECUState(dtcs: [[0x12, 0x03, 0x08, 0x08], [0x1B, 0x2A, 0x00, 0x09]])
     sim.ecus[0x12] = { request in
-        switch request {
-        case [0x19, 0x02, 0x0D]: return [0x59, 0x02, 0xFF, 0x12, 0x03, 0x08, 0x08, 0x1B, 0x2A, 0x00, 0x09]
-        case [0x22, 0xF1, 0x90]: return [0x62, 0xF1, 0x90] + vin
-        default: return [0x7F, request[0], 0x11]
-        }
+        dme.respond(request) { $0 == [0x22, 0xF1, 0x90] ? [0x62, 0xF1, 0x90] + vin : nil }
     }
     // DSC ohne Fehler
-    sim.ecus[0x29] = { request in request.first == 0x19 ? [0x59, 0x02, 0xFF] : [0x7F, request[0], 0x11] }
-    // FEM: ein Fehler, Licht-Steuerung per 2F
-    sim.ecus[0x40] = { request in
-        switch request.first {
-        case 0x19: return [0x59, 0x02, 0xFF, 0x80, 0x1C, 0x20, 0x2F]
-        case 0x10: return [0x50, request[1], 0x00, 0x32, 0x01, 0xF4]
-        case 0x2F: return [0x6F] + request.dropFirst()
-        case 0x3E: return nil
-        default: return [0x7F, request[0], 0x11]
-        }
-    }
+    let dsc = ECUState(dtcs: [])
+    sim.ecus[0x29] = { dsc.respond($0) }
+    // FEM mit einem Fehler
+    let fem = ECUState(dtcs: [[0x80, 0x1C, 0x20, 0x2F]])
+    sim.ecus[0x40] = { fem.respond($0) }
     sim.obdStored = [0x0300]
-    return sim
+    return Car(sim: sim, dme: dme, dsc: dsc, fem: fem)
+}
+
+@MainActor
+func isFinished(_ scanner: FaultScanner) -> Bool {
+    if case .finished = scanner.phase { return true }
+    return false
+}
+
+@MainActor
+func scanned(_ car: Car, mode: FaultScanner.Mode = .quick) async -> (ELMSession, FaultScanner) {
+    let session = ELMSession(transport: car.sim)
+    await session.initialize()
+    let scanner = FaultScanner(session: session)
+    scanner.mode = mode
+    scanner.start()
+    while !isFinished(scanner) { try? await Task.sleep(nanoseconds: 20_000_000) }
+    return (session, scanner)
 }
 
 @MainActor
 func run() async {
     print("Fehlerspeicher-Scan (Schnell)")
-    let sim = makeCar()
-    let session = ELMSession(transport: sim)
-    await session.initialize()
+    let car = makeCar()
+    let (session, scanner) = await scanned(car)
     check(session.isInitialized, "Adapter initialisiert")
-
-    let scanner = FaultScanner(session: session)
-    scanner.start()
-    while scanner.phase != .finished(Date.distantPast), !isFinished(scanner) {
-        try? await Task.sleep(nanoseconds: 20_000_000)
-    }
     check(scanner.abortReason == nil, "Scan nicht abgebrochen \(scanner.abortReason ?? "")")
-    let order = sim.received.filter { $0.hasPrefix("ATFCS") }.prefix(3)
+    let order = car.sim.received.filter { $0.hasPrefix("ATFCS") }.prefix(3)
     check(Array(order) == ["ATFCSH6F1", "ATFCSD12300000", "ATFCSM1"], "Flow-Control-Reihenfolge: \(Array(order))")
     check(scanner.results.map(\.address) == [0x12, 0x29, 0x40], "genau DME, DSC und FEM gefunden: \(scanner.results.map(\.hexAddress))")
     check(scanner.results.allSatisfy { $0.error == nil }, "keine Lesefehler")
@@ -64,17 +100,54 @@ func run() async {
     check(scanner.vin == "WBA4A31070GTEST123", "Fahrgestellnummer: \(scanner.vin ?? "–")")
     check(scanner.obdCodes.map(\.code) == ["P0300"], "OBD-II: \(scanner.obdCodes.map(\.code))")
 
-    print("Licht schalten nach dem Scan")
-    var preset = LightPreset(name: "Test", spots: [.angelEyeLeft])
-    preset.ecu = "40"; preset.did = "D1 23"; preset.controlData = "01"
-    do {
-        try await session.setLight(preset, on: true)
-        try await session.setLight(preset, on: false)
-        check(true, "2F an/aus am FEM positiv beantwortet")
-    } catch {
-        check(false, "Licht schalten: \(error.localizedDescription)")
-    }
-    await session.endAllSessions()
+    print("Ein Steuergerät löschen")
+    await scanner.clear(0x12)
+    check(car.sim.received.contains("14FFFFFF"), "Löschbefehl 14 FF FF FF gesendet")
+    check(scanner.results.first { $0.address == 0x12 }?.faults.isEmpty == true, "DME nach dem Löschen leer (neu ausgelesen)")
+    check(scanner.clearMessage?.contains("gelöscht") == true, "Meldung: \(scanner.clearMessage ?? "–")")
+    check(scanner.results.first { $0.address == 0x40 }?.faults.count == 1, "FEM bleibt unberührt")
+
+    print("Fehler kommt sofort wieder")
+    car.fem.sticky = true
+    await scanner.clear(0x40)
+    check(scanner.results.first { $0.address == 0x40 }?.faults.count == 1, "FEM-Fehler wieder da")
+    check(scanner.clearMessage?.contains("wiedergekommen") == true, "Meldung erklärt es: \(scanner.clearMessage ?? "–")")
+
+    print("Löschen nur in der erweiterten Sitzung")
+    let car2 = makeCar()
+    car2.dme.needsExtendedSession = true
+    let (_, scanner2) = await scanned(car2)
+    await scanner2.clear(0x12)
+    let afterClear = car2.sim.received.drop { $0 != "14FFFFFF" }
+    check(Array(afterClear.prefix(3)) == ["14FFFFFF", "1003", "14FFFFFF"], "abgelehnt → 10 03 → erneut gelöscht")
+    check(afterClear.contains("1001"), "danach zurück in die normale Sitzung")
+    check(car2.dme.session == 0x01, "DME wieder in Sitzung 01")
+    check(scanner2.results.first { $0.address == 0x12 }?.faults.isEmpty == true, "DME leer")
+
+    print("Alle löschen")
+    let car3 = makeCar()
+    car3.fem.sticky = true
+    let (_, scanner3) = await scanned(car3)
+    await scanner3.clearAll()
+    let clearCommands = car3.sim.received.filter { $0 == "14FFFFFF" }.count
+    check(clearCommands == 2, "nur Steuergeräte mit Einträgen gelöscht (\(clearCommands)×)")
+    check(scanner3.results.first { $0.address == 0x12 }?.faults.isEmpty == true, "DME leer")
+    check(scanner3.clearMessage == "1 Steuergerät gelöscht, bei 1 sind Fehler sofort wiedergekommen (Ursache besteht noch).",
+          "Zusammenfassung: \(scanner3.clearMessage ?? "–")")
+    check(scanner3.obdCodes.count == 1, "OBD-II bleibt bei „Alle löschen“ unberührt")
+
+    print("OBD-II löschen")
+    await scanner3.clearOBD()
+    check(car3.sim.received.contains("04"), "Modus 04 gesendet")
+    check(scanner3.obdCodes.isEmpty, "OBD-II leer (neu ausgelesen)")
+    check(scanner3.clearMessage == "OBD-II-Fehler gelöscht.", "Meldung: \(scanner3.clearMessage ?? "–")")
+    check(scanner3.clearingAddress == nil && !scanner3.isBusy, "danach wieder bereit")
+
+    print("Beispielmodus")
+    let demo = FaultScanner(session: ELMSession(transport: ELMSimulator()))
+    demo.loadDemo()
+    await demo.clearAll()
+    check(demo.results.allSatisfy { $0.faults.isEmpty }, "Beispiel-Fehler lassen sich ohne Auto „löschen“")
 
     print("Unbekanntes Steuergerät")
     do {
@@ -86,92 +159,17 @@ func run() async {
         check(false, "falscher Fehler: \(error.localizedDescription)")
     }
 
-    print("Szenen-Tempo und Wiederholungen (Vorschau)")
-    let controller = LightController(session: ELMSession(transport: ELMSimulator()), store: PresetStore())
-    func timed(_ speed: Double, _ repeats: Int) async -> Double {
-        let started = Date()
-        controller.play(LightShow.pulse, speed: speed, repeats: repeats)
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        while controller.playingShow != nil { try? await Task.sleep(nanoseconds: 20_000_000) }
-        return Date().timeIntervalSince(started)
-    }
-    let base = LightShow.pulse.duration
-    let fast = await timed(2, 1)
-    check(abs(fast - base / 2) < 0.4, String(format: "2× Tempo: %.1f s (erwartet %.1f s)", fast, base / 2))
-    let twice = await timed(2, 2)
-    check(abs(twice - base) < 0.5, String(format: "2× Tempo, 2 Wiederholungen: %.1f s (erwartet %.1f s)", twice, base))
-    controller.play(LightShow.pulse, speed: 1, repeats: 0)
-    try? await Task.sleep(nanoseconds: UInt64((base + 1) * 1_000_000_000))
-    check(controller.playingShow == "pulse", "endlos läuft nach einem Durchlauf weiter")
-    await controller.stopShow()
-    check(controller.playingShow == nil, "endlos lässt sich stoppen")
-
-    print("Licht-Profil importieren")
-    let profile = """
-    # Test-Profil
-    Angel Eyes links; 40; D1 23; 01; Angel Eye links
-    Angel Eyes rechts; 40; d124; 01
-    Neue OLED-Leuchte; 72; 12 34; ; Rücklicht links, Rücklicht rechts
-    kaputt; ZZ; 1
-    """
-    let parsed = PresetStore.parseProfile(profile)
-    check(parsed.entries.count == 3, "3 gültige Einträge erkannt (\(parsed.entries.count))")
-    check(parsed.invalidLines == [5], "ungültige Zeile 5 gemeldet: \(parsed.invalidLines)")
-    check(parsed.entries[1].did == "D1 24", "DID normalisiert: \(parsed.entries[1].did)")
-    check(parsed.entries[2].spots == [.tailLeft, .tailRight], "Positionen erkannt")
-    let profileStore = PresetStore()
-    profileStore.presets = PresetStore.defaults
-    let outcome = profileStore.importProfile(profile)
-    check(outcome.updated == 2 && outcome.added == 1, "2 aktualisiert, 1 neu (\(outcome.updated)/\(outcome.added))")
-    check(profileStore.presets.first { $0.name == "Angel Eyes links" }?.isConfigured == true, "Angel Eyes links ist eingerichtet")
-    let roundTrip = PresetStore.parseProfile(profileStore.profileText)
-    check(roundTrip.invalidLines.allSatisfy { line in
-        let l = profileStore.profileText.components(separatedBy: "\n")[line - 1]
-        return l.contains("; ; ") || l.contains(";  ;")
-    }, "Export lässt sich wieder einlesen (nur unkonfigurierte Zeilen ungültig)")
-    check(roundTrip.entries.count == 3, "Export enthält die 3 eingerichteten Leuchten")
-
-    print("Szene im Takt am Auto")
-    let musicSim = makeCar()
-    let musicSession = ELMSession(transport: musicSim)
-    await musicSession.initialize()
-    let musicController = LightController(session: musicSession, store: profileStore)
-    musicController.startMusicSync()
-    musicController.musicSceneStep([.angelEyeLeft, .angelEyeRight])
-    try? await Task.sleep(nanoseconds: 1_500_000_000)
-    let onCommands = musicSim.received.filter { $0.hasPrefix("2FD1") && $0.hasSuffix("0301") }
-    check(onCommands.count == 2, "Beat: beide Angel Eyes am FEM eingeschaltet (\(onCommands))")
-    check(musicController.litSpots == [.angelEyeLeft, .angelEyeRight], "3D-Modell zeigt den Szenen-Schritt")
-    musicController.musicSceneStep([])
-    try? await Task.sleep(nanoseconds: 1_000_000_000)
-    let offCommands = musicSim.received.filter { $0.hasPrefix("2FD1") && $0.hasSuffix("00") && $0.count == 8 }
-    check(offCommands.count == 2, "nächster Beat: wieder aus (\(offCommands))")
-    musicController.stopMusicSync()
-    check(musicController.litSpots.isEmpty, "Stopp räumt das 3D-Modell auf")
-    await musicSession.endAllSessions()
-
     print("Adapter lehnt BMW-Adressierung ab")
     let picky = makeCar()
-    picky.rejectExtendedAddressing = true
-    let pickySession = ELMSession(transport: picky)
-    await pickySession.initialize()
-    let pickyScanner = FaultScanner(session: pickySession)
-    pickyScanner.mode = .full
-    pickyScanner.start()
-    while !isFinished(pickyScanner) { try? await Task.sleep(nanoseconds: 20_000_000) }
+    picky.sim.rejectExtendedAddressing = true
+    let (_, pickyScanner) = await scanned(picky, mode: .full)
     check(pickyScanner.abortReason != nil, "Scan bricht mit Meldung ab: \(pickyScanner.abortReason ?? "–")")
     check(pickyScanner.results.isEmpty, "keine 127 Fehlerzeilen (\(pickyScanner.results.count))")
-    let pickyRequests = picky.received.filter { $0.hasPrefix("ATCEA") && $0.count > 5 }.count
+    let pickyRequests = picky.sim.received.filter { $0.hasPrefix("ATCEA") && $0.count > 5 }.count
     check(pickyRequests <= 2, "bricht sofort ab (\(pickyRequests) Versuche)")
 
     print(failures == 0 ? "\nAlle Tests bestanden." : "\n\(failures) Test(s) fehlgeschlagen.")
     exit(failures == 0 ? 0 : 1)
-}
-
-@MainActor
-func isFinished(_ scanner: FaultScanner) -> Bool {
-    if case .finished = scanner.phase { return true }
-    return false
 }
 
 Task { @MainActor in await run() }
