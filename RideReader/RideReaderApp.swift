@@ -7,6 +7,7 @@ struct RideReaderApp: App {
     @StateObject private var session: ELMSession
     @StateObject private var scanner: FaultScanner
     @StateObject private var dpf: DPFMonitor
+    @StateObject private var live: LiveMonitor
 
     init() {
         let ble = BLEManager(startBluetooth: LaunchOptions.shot == nil)
@@ -15,6 +16,7 @@ struct RideReaderApp: App {
         _session = StateObject(wrappedValue: session)
         _scanner = StateObject(wrappedValue: FaultScanner(session: session))
         _dpf = StateObject(wrappedValue: DPFMonitor(session: session))
+        _live = StateObject(wrappedValue: LiveMonitor(session: session))
     }
 
     var body: some Scene {
@@ -24,6 +26,7 @@ struct RideReaderApp: App {
                 .environmentObject(session)
                 .environmentObject(scanner)
                 .environmentObject(dpf)
+                .environmentObject(live)
                 .preferredColorScheme(.dark)
         }
     }
@@ -39,12 +42,13 @@ enum LaunchOptions {
 }
 
 enum AppTab: String, CaseIterable {
-    case home, dpf, settings
+    case home, dpf, live, settings
 
     var title: String {
         switch self {
         case .home: return "Zuhause"
         case .dpf: return "DPF"
+        case .live: return "Live"
         case .settings: return "Einstellungen"
         }
     }
@@ -54,6 +58,7 @@ enum AppTab: String, CaseIterable {
         switch self {
         case .home: return "house.fill"
         case .dpf: return nil
+        case .live: return "waveform.path.ecg"
         case .settings: return "gearshape.fill"
         }
     }
@@ -84,6 +89,9 @@ struct RootView: View {
                         .transition(.blurFade)
                 case .dpf:
                     DPFView(showsClose: false)
+                        .transition(.blurFade)
+                case .live:
+                    LiveView()
                         .transition(.blurFade)
                 case .settings:
                     SettingsTab(tab: $tab, replayIntro: replayIntro)
@@ -199,13 +207,15 @@ struct ScanOverlay: View {
         let scanning = scanner.phase == .scanning
         ZStack {
             // Deckender Hintergrund statt Live-Blur: spart in jedem Bild einen Weichzeichner über den ganzen Bildschirm
-            ZStack {
-                Theme.background
-                Glow(color: scanning ? Theme.violet : Theme.ok, opacity: 0.22)
-                    .frame(width: 700, height: 700)
-                    .offset(y: -120)
-            }
-            .ignoresSafeArea()
+            // Glow nur als Overlay – darf das Layout nie breiter als den Bildschirm machen
+            Theme.background
+                .overlay {
+                    Glow(color: scanning ? Theme.violet : Theme.ok, opacity: 0.22)
+                        .frame(width: 700, height: 700)
+                        .offset(y: -120)
+                }
+                .clipped()
+                .ignoresSafeArea()
 
             VStack(spacing: 18) {
                 Spacer()

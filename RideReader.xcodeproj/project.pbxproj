@@ -19,11 +19,13 @@
 		90000000000000000000000A /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* Hex.swift */; };
 		90000000000000000000000B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* HomeView.swift */; };
 		90000000000000000000000C /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* IntroView.swift */; };
-		90000000000000000000000D /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* MechanicsLoader.swift */; };
-		90000000000000000000000E /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* Platform.swift */; };
-		90000000000000000000000F /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* RideReaderApp.swift */; };
-		900000000000000000000010 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* SettingsTab.swift */; };
-		900000000000000000000011 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Theme.swift */; };
+		90000000000000000000000D /* LiveMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* LiveMonitor.swift */; };
+		90000000000000000000000E /* LiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LiveView.swift */; };
+		90000000000000000000000F /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* MechanicsLoader.swift */; };
+		900000000000000000000010 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* Platform.swift */; };
+		900000000000000000000011 /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* RideReaderApp.swift */; };
+		900000000000000000000012 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* SettingsTab.swift */; };
+		900000000000000000000013 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,11 +42,13 @@
 		F0000000000000000000000A /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
 		F0000000000000000000000B /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		F0000000000000000000000C /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000D /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
-		F0000000000000000000000E /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F0000000000000000000000F /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
-		F00000000000000000000010 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
-		F00000000000000000000011 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F0000000000000000000000D /* LiveMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitor.swift; sourceTree = "<group>"; };
+		F0000000000000000000000E /* LiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000F /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
+		F00000000000000000000010 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
+		F00000000000000000000012 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		F00000000000000000000013 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,11 +85,13 @@
 				F0000000000000000000000A /* Hex.swift */,
 				F0000000000000000000000B /* HomeView.swift */,
 				F0000000000000000000000C /* IntroView.swift */,
-				F0000000000000000000000D /* MechanicsLoader.swift */,
-				F0000000000000000000000E /* Platform.swift */,
-				F0000000000000000000000F /* RideReaderApp.swift */,
-				F00000000000000000000010 /* SettingsTab.swift */,
-				F00000000000000000000011 /* Theme.swift */,
+				F0000000000000000000000D /* LiveMonitor.swift */,
+				F0000000000000000000000E /* LiveView.swift */,
+				F0000000000000000000000F /* MechanicsLoader.swift */,
+				F00000000000000000000010 /* Platform.swift */,
+				F00000000000000000000011 /* RideReaderApp.swift */,
+				F00000000000000000000012 /* SettingsTab.swift */,
+				F00000000000000000000013 /* Theme.swift */,
 			);
 			path = RideReader;
 			sourceTree = "<group>";
@@ -178,11 +184,13 @@
 				90000000000000000000000A /* Hex.swift in Sources */,
 				90000000000000000000000B /* HomeView.swift in Sources */,
 				90000000000000000000000C /* IntroView.swift in Sources */,
-				90000000000000000000000D /* MechanicsLoader.swift in Sources */,
-				90000000000000000000000E /* Platform.swift in Sources */,
-				90000000000000000000000F /* RideReaderApp.swift in Sources */,
-				900000000000000000000010 /* SettingsTab.swift in Sources */,
-				900000000000000000000011 /* Theme.swift in Sources */,
+				90000000000000000000000D /* LiveMonitor.swift in Sources */,
+				90000000000000000000000E /* LiveView.swift in Sources */,
+				90000000000000000000000F /* MechanicsLoader.swift in Sources */,
+				900000000000000000000010 /* Platform.swift in Sources */,
+				900000000000000000000011 /* RideReaderApp.swift in Sources */,
+				900000000000000000000012 /* SettingsTab.swift in Sources */,
+				900000000000000000000013 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

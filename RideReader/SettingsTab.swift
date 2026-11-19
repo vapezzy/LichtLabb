@@ -289,8 +289,6 @@ struct StatusOrb: View {
                                    value: wave)
                 }
             }
-            Glow(color: color, opacity: 0.6)
-                .frame(width: 58, height: 58)
             Circle()
                 .fill(RadialGradient(colors: [color, color.opacity(0.3)], center: .center, startRadius: 0, endRadius: 18))
                 .frame(width: 26, height: 26)
@@ -298,6 +296,8 @@ struct StatusOrb: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.black.opacity(0.7))
         }
+        .frame(width: 58, height: 58)
+        .background { Glow(color: color, opacity: 0.6).frame(width: 58, height: 58) }
         .onAppear { wave = true }
     }
 }

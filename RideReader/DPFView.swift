@@ -6,6 +6,7 @@ struct DPFView: View {
     var showsClose = true
 
     @EnvironmentObject private var monitor: DPFMonitor
+    @EnvironmentObject private var session: ELMSession
     @Environment(\.dismiss) private var dismiss
 
     private var r: DPFMonitor.Reading { monitor.reading }
@@ -48,6 +49,8 @@ struct DPFView: View {
         .animation(.spring(response: 0.5, dampingFraction: 0.85), value: r.regenerating)
         .animation(.spring(response: 0.5, dampingFraction: 0.85), value: monitor.state)
         .onAppear { monitor.start() }
+        // Stecker wird verbunden, während die Seite offen ist → von Beispiel- auf Live-Daten umschalten
+        .onChange(of: session.isInitialized) { _ in monitor.start() }
         .onDisappear { monitor.stop() }
     }
 
@@ -237,9 +240,6 @@ struct SootGauge: View {
 
     var body: some View {
         ZStack {
-            Glow(color: color, opacity: 0.35)
-                .frame(width: diameter * 1.3, height: diameter * 1.3)
-
             // Skala
             Circle()
                 .trim(from: 0, to: 0.75)
@@ -269,7 +269,6 @@ struct SootGauge: View {
                     .font(Theme.display(46))
                     .monospacedDigit()
                     .foregroundStyle(LinearGradient(colors: [.white, color], startPoint: .top, endPoint: .bottom))
-                    .contentTransition(.numericText())
                 Text(caption)
                     .font(Theme.rounded(13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
@@ -277,6 +276,10 @@ struct SootGauge: View {
             }
         }
         .frame(width: diameter, height: diameter)
+        .background {
+            Glow(color: color, opacity: 0.35)
+                .frame(width: diameter * 1.3, height: diameter * 1.3)
+        }
         .animation(.easeOut(duration: 0.5), value: fraction)
         .onAppear {
             withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { spin = true }
@@ -324,12 +327,10 @@ struct ValueTile: View {
                         .font(Theme.display(24))
                         .monospacedDigit()
                         .foregroundStyle(hot ? Theme.fault : .white)
-                        .contentTransition(.numericText())
                     Text(unit)
                         .font(Theme.rounded(12, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.5))
                 }
-                .animation(.easeOut(duration: 0.3), value: value)
             } else {
                 Text(supported ? "…" : "nicht geliefert")
                     .font(Theme.rounded(14, weight: .semibold))

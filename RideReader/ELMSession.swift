@@ -75,6 +75,8 @@ final class ELMSession: ObservableObject {
     private var baseAddressed = false
     /// Physische Adressierung des Motorsteuergeräts (7E0 → 7E8) für Messwerte aktiv
     private var engineAddressed = false
+    /// Zwischenspeicher der unterstützten Messwerte (gilt bis zur nächsten Initialisierung)
+    private var pidCache: Set<UInt8>?
 
     convenience init(ble: BLEManager) {
         self.init(transport: ble)
@@ -96,6 +98,7 @@ final class ELMSession: ObservableObject {
         currentECU = nil
         baseAddressed = false
         engineAddressed = false
+        pidCache = nil
         do {
             let reset = try await command("ATZ", timeout: 5)
             adapterInfo = reset.first { $0.uppercased().contains("ELM") || $0.lowercased().contains("vlinker") } ?? reset.last
@@ -268,6 +271,44 @@ final class ELMSession: ObservableObject {
             return Array(message.dropFirst(2))
         }
         return nil
+    }
+
+    /// Batteriespannung direkt an der OBD-Buchse (Pin 16), gemessen vom Adapter selbst – braucht kein Steuergerät.
+    func readVoltage(quiet: Bool = true) async throws -> Double? {
+        let lines = try await command("ATRV", timeout: 2, quiet: quiet)
+        for line in lines {
+            let digits = line.uppercased().replacingOccurrences(of: "V", with: "").replacingOccurrences(of: ",", with: ".")
+            if let value = Double(digits.trimmingCharacters(in: .whitespaces)), value > 3, value < 30 { return value }
+        }
+        return nil
+    }
+
+    /// Welche Messwerte (Modus 01) das Motorsteuergerät kennt – einmal pro Verbindung abgefragt.
+    func supportedPIDs() async throws -> Set<UInt8> {
+        if let cached = pidCache { return cached }
+        var result: Set<UInt8> = []
+        var base: UInt8 = 0x00
+        while true {
+            guard let data = try await readPID(base, quiet: false) else { break }
+            let pids = Self.decodeSupport(base: base, data: data)
+            result.formUnion(pids)
+            // Bit für base+0x20 sagt, ob der nächste Bereich existiert
+            guard base < 0xC0, pids.contains(base &+ 0x20) else { break }
+            base += 0x20
+        }
+        pidCache = result
+        return result
+    }
+
+    /// Unterstützte PIDs aus einer 4-Byte-Bitmap: höchstes Bit = base+1.
+    nonisolated static func decodeSupport(base: UInt8, data: [UInt8]) -> Set<UInt8> {
+        var result: Set<UInt8> = []
+        for (byteIndex, byte) in data.prefix(4).enumerated() {
+            for bit in 0..<8 where byte & (0x80 >> bit) != 0 {
+                result.insert(base &+ UInt8(byteIndex * 8 + bit + 1))
+            }
+        }
+        return result
     }
 
     /// Standard-OBD-Header physisch auf das Motorsteuergerät: Anfrage an 7E0, nur Antworten von 7E8.

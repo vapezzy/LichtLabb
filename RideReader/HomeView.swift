@@ -468,22 +468,6 @@ struct ControlOrb: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Leuchten: drei weiche Farbflecken (Radialverläufe statt Blur), drehen sich mit dem Ring
-                ZStack {
-                    Glow(color: ringColors[0], opacity: 0.5)
-                        .frame(width: diameter * 1.1, height: diameter * 1.1)
-                        .offset(x: -diameter * 0.12, y: -diameter * 0.1)
-                    Glow(color: ringColors[2], opacity: 0.45)
-                        .frame(width: diameter * 1.1, height: diameter * 1.1)
-                        .offset(x: diameter * 0.14, y: -diameter * 0.02)
-                    Glow(color: ringColors[3], opacity: 0.4)
-                        .frame(width: diameter * 1.1, height: diameter * 1.1)
-                        .offset(x: -diameter * 0.02, y: diameter * 0.14)
-                }
-                .opacity(breathe ? 1 : 0.6)
-                .scaleEffect(breathe ? 1.05 : 0.95)
-                .rotationEffect(.degrees(spin ? 360 : 0))
-
                 // Verlaufsring
                 Circle()
                     .strokeBorder(AngularGradient(colors: ringColors, center: .center), lineWidth: 3.5)
@@ -529,6 +513,24 @@ struct ControlOrb: View {
                 })
             }
             .frame(width: diameter, height: diameter)
+            .background {
+                // Leuchten: drei weiche Farbflecken (Radialverläufe statt Blur), drehen sich mit dem Ring.
+                // Im Hintergrund, damit sie die Größe des Knopfs nicht verändern.
+                ZStack {
+                    Glow(color: ringColors[0], opacity: 0.5)
+                        .frame(width: diameter * 1.1, height: diameter * 1.1)
+                        .offset(x: -diameter * 0.12, y: -diameter * 0.1)
+                    Glow(color: ringColors[2], opacity: 0.45)
+                        .frame(width: diameter * 1.1, height: diameter * 1.1)
+                        .offset(x: diameter * 0.14, y: -diameter * 0.02)
+                    Glow(color: ringColors[3], opacity: 0.4)
+                        .frame(width: diameter * 1.1, height: diameter * 1.1)
+                        .offset(x: -diameter * 0.02, y: diameter * 0.14)
+                }
+                .opacity(breathe ? 1 : 0.6)
+                .scaleEffect(breathe ? 1.05 : 0.95)
+                .rotationEffect(.degrees(spin ? 360 : 0))
+            }
             .contentShape(Circle())
         }
         .buttonStyle(PressableStyle())

@@ -109,32 +109,14 @@ final class DPFMonitor: ObservableObject {
         }
     }
 
-    /// Fragt die Unterstützungs-Bitmaps (0100, 0120, …) ab, solange das Steuergerät weitere Bereiche meldet.
     private func discoverSupported() async throws -> Set<UInt8> {
-        var result: Set<UInt8> = []
-        var base: UInt8 = 0x00
-        while base <= 0x80 {
-            guard let data = try await session.readPID(base, quiet: false) else { break }
-            let pids = Self.decodeSupport(base: base, data: data)
-            result.formUnion(pids)
-            // Bit für base+0x20 sagt, ob der nächste Bereich existiert
-            guard pids.contains(base &+ 0x20), base < 0x80 else { break }
-            base += 0x20
-        }
-        return result
+        try await session.supportedPIDs()
     }
 
     // MARK: - Dekodierung (SAE J1979)
 
-    /// Unterstützte PIDs aus einer 4-Byte-Bitmap: höchstes Bit = base+1.
     nonisolated static func decodeSupport(base: UInt8, data: [UInt8]) -> Set<UInt8> {
-        var result: Set<UInt8> = []
-        for (byteIndex, byte) in data.prefix(4).enumerated() {
-            for bit in 0..<8 where byte & (0x80 >> bit) != 0 {
-                result.insert(base &+ UInt8(byteIndex * 8 + bit + 1))
-            }
-        }
-        return result
+        ELMSession.decodeSupport(base: base, data: data)
     }
 
     nonisolated static func apply(pid: UInt8, data d: [UInt8], to r: inout Reading) {

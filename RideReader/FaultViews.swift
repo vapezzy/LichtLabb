@@ -239,9 +239,6 @@ struct ClearWarningPopup: View {
 
             VStack(spacing: 16) {
                 ZStack {
-                    Glow(color: Theme.fault, opacity: 0.45)
-                        .frame(width: 110, height: 110)
-                        .scaleEffect(appeared ? 1.08 : 0.92)
                     Circle()
                         .fill(Theme.fault.opacity(0.16))
                         .frame(width: 84, height: 84)
@@ -249,6 +246,11 @@ struct ClearWarningPopup: View {
                         .font(.system(size: 38, weight: .bold))
                         .foregroundStyle(LinearGradient(colors: [Theme.fault, Theme.severe], startPoint: .top, endPoint: .bottom))
                         .rotationEffect(.degrees(appeared ? 5 : -5))
+                }
+                .background {
+                    Glow(color: Theme.fault, opacity: 0.45)
+                        .frame(width: 110, height: 110)
+                        .scaleEffect(appeared ? 1.08 : 0.92)
                 }
                 .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: appeared)
                 .frame(height: 90)
