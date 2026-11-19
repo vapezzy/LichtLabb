@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var webLink: WebLink?
     @State private var showNotConnected = false
     @State private var showHealthy = false
+    @State private var pdfURL: URL?
 
     private var finished: Bool {
         if case .finished = scanner.phase { return true }
@@ -410,8 +411,18 @@ struct HomeView: View {
                         .padding(.vertical, 11)
                         .background(Capsule().fill(.white.opacity(0.1)))
                 }
+                if let pdfURL {
+                    ShareLink(item: pdfURL) {
+                        Label("PDF", systemImage: "doc.richtext")
+                            .font(Theme.rounded(14, weight: .bold))
+                            .foregroundStyle(Theme.onButton)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 11)
+                            .background(Capsule().fill(Theme.buttonGradient))
+                    }
+                }
                 ShareLink(item: scanner.reportText) {
-                    Label("Bericht", systemImage: "square.and.arrow.up")
+                    Label("Text", systemImage: "square.and.arrow.up")
                         .font(Theme.rounded(14, weight: .bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
@@ -423,6 +434,10 @@ struct HomeView: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .card(tint: Theme.color(worst))
+        // PDF-Bericht neu erzeugen, sobald sich die Ergebnisse ändern
+        .task(id: scanner.reportText) {
+            pdfURL = ReportPDF.make(scanner: scanner, edition: theme.editionLabel)
+        }
     }
 
     private var healthyList: some View {
