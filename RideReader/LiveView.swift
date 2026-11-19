@@ -31,7 +31,10 @@ struct LiveView: View {
                     case .live:
                         batteryCard.buildIn(1)
                         batteryTestCard.buildIn(2)
-                        liveGrid.buildIn(3)
+                        if let readiness = monitor.readiness {
+                            readinessCard(readiness).buildIn(3)
+                        }
+                        liveGrid.buildIn(4)
                         Text("Nur lesen – RideReader verändert nichts am Auto.")
                             .font(Theme.rounded(12, weight: .medium))
                             .foregroundStyle(.white.opacity(0.4))
@@ -263,6 +266,53 @@ struct LiveView: View {
                 .padding(.vertical, 4)
                 .background(Capsule().fill(color.opacity(0.16)))
         }
+    }
+
+    // MARK: - AU-Bereitschaft
+
+    private func readinessCard(_ r: LiveMonitor.Readiness) -> some View {
+        let color: Color = r.mil ? Theme.severe : r.ready ? Theme.ok : Theme.fault
+        let title = r.mil ? "Motorkontrollleuchte an" : r.ready ? "Bereit für die AU" : "Noch nicht AU-bereit"
+        let text = r.mil
+            ? "Mit leuchtender Motorkontrollleuchte gibt's keine Plakette. Erst den Fehler beheben."
+            : r.ready
+                ? "Alle Abgas-Selbsttests sind durch – ab zur Untersuchung."
+                : "\(r.openCount) von \(r.monitors.count) Selbsttests noch offen. Nach dem Fehlerlöschen oder Batterieabklemmen ein paar normale Fahrten machen (Stadt, Landstraße, Autobahn)."
+        return VStack(alignment: .leading, spacing: 14) {
+            Text("AU-BEREITSCHAFT")
+                .font(.system(size: 12, weight: .heavy))
+                .tracking(1.6)
+                .foregroundStyle(LinearGradient(colors: [Theme.accent, Theme.violet], startPoint: .leading, endPoint: .trailing))
+            HStack(spacing: 12) {
+                Image(systemName: r.mil ? "exclamationmark.octagon.fill" : r.ready ? "checkmark.seal.fill" : "hourglass")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(color)
+                    .background(Glow(color: color, opacity: 0.45).frame(width: 64, height: 64))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(Theme.rounded(17, weight: .bold))
+                    Text(text)
+                        .font(Theme.rounded(13, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            VStack(spacing: 8) {
+                ForEach(r.monitors, id: \.name) { m in
+                    HStack {
+                        Image(systemName: m.complete ? "checkmark.circle.fill" : "clock.fill")
+                            .foregroundStyle(m.complete ? Theme.ok : Theme.fault)
+                        Text(m.name).font(Theme.rounded(14, weight: .semibold))
+                        Spacer()
+                        Text(m.complete ? "fertig" : "offen")
+                            .font(Theme.rounded(12, weight: .bold))
+                            .foregroundStyle(m.complete ? Theme.ok : Theme.fault)
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card(tint: color)
     }
 
     // MARK: - Echtzeitdaten

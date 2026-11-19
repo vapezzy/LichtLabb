@@ -48,10 +48,10 @@ struct DPFView: View {
         .preferredColorScheme(.dark)
         .animation(.spring(response: 0.5, dampingFraction: 0.85), value: r.regenerating)
         .animation(.spring(response: 0.5, dampingFraction: 0.85), value: monitor.state)
-        .onAppear { monitor.start() }
+        .onAppear { monitor.viewAppeared() }
         // Stecker wird verbunden, während die Seite offen ist → von Beispiel- auf Live-Daten umschalten
         .onChange(of: session.isInitialized) { _ in monitor.start() }
-        .onDisappear { monitor.stop() }
+        .onDisappear { monitor.viewDisappeared() }
     }
 
     // MARK: - Kopf
@@ -123,6 +123,7 @@ struct DPFView: View {
             SootGauge(percent: r.regenTrigger, deltaPressure: r.deltaPressure, regenerating: r.regenerating)
                 .padding(.vertical, 6)
             statusBanner
+            alarmCard
             valuesGrid
             tipsCard
             Text("RideReader liest hier nur – am Motor wird nichts verändert oder gestartet.")
@@ -156,6 +157,30 @@ struct DPFView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .card(tint: color)
+    }
+
+    private var alarmCard: some View {
+        HStack(spacing: 14) {
+            Image(systemName: monitor.alarmEnabled ? "bell.badge.fill" : "bell.slash")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(monitor.alarmEnabled ? AnyShapeStyle(Theme.brandGradient) : AnyShapeStyle(Color.white.opacity(0.5)))
+                .frame(width: 30)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Regenerations-Alarm")
+                    .font(Theme.rounded(16, weight: .bold))
+                Text("Vibriert und meldet sich, sobald eine Regeneration startet – damit du dann nicht abstellst. App beim Fahren offen lassen.")
+                    .font(Theme.rounded(12, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Toggle("", isOn: $monitor.alarmEnabled)
+                .labelsHidden()
+                .tint(Theme.violet)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card(tint: monitor.alarmEnabled ? Theme.violet : nil)
     }
 
     private var regenHint: String {

@@ -237,6 +237,8 @@ final class ELMSession: ObservableObject {
 
     /// Liest die genormten OBD-II-Fehler (Modus 03 gespeichert, 07 sporadisch) über die Funktionsadresse 7DF.
     func readOBDCodes() async throws -> (stored: [UInt16], pending: [UInt16]) {
+        await acquire()
+        defer { release() }
         try await useOBDAddressing()
 
         func read(_ mode: String, reply: UInt8) async throws -> [UInt16] {
@@ -265,11 +267,36 @@ final class ELMSession: ObservableObject {
         engineAddressed = false
     }
 
+    // MARK: - Exklusiver Zugriff
+
+    /// Eine Anfrage (Adressierung + Befehl) läuft ungestört durch, auch wenn mehrere Seiten gleichzeitig lesen
+    /// (z. B. DPF-Alarm im Hintergrund während einer Kontrolle).
+    private var locked = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    private func acquire() async {
+        if !locked {
+            locked = true
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    private func release() {
+        if waiters.isEmpty {
+            locked = false
+        } else {
+            waiters.removeFirst().resume()
+        }
+    }
+
     // MARK: - Messwerte (nur lesen)
 
     /// Liest einen genormten Messwert (OBD-II Modus 01) direkt vom Motorsteuergerät.
     /// Liefert die Datenbytes nach `41 <PID>` oder nil, wenn das Steuergerät den Wert nicht kennt.
     func readPID(_ pid: UInt8, quiet: Bool = true) async throws -> [UInt8]? {
+        await acquire()
+        defer { release() }
         try await useEngineAddressing(quiet: quiet)
         let lines = try await command(String(format: "01%02X", pid), timeout: 2, quiet: quiet)
         if lines.contains(where: { $0.contains("NO DATA") }) { return nil }
@@ -335,6 +362,8 @@ final class ELMSession: ObservableObject {
     /// Sendet eine UDS-Anfrage und liefert die positive Antwort (ab dem Service-Byte).
     @discardableResult
     func uds(_ request: [UInt8], ecu: UInt8, timeout: Double = 3, quiet: Bool = false) async throws -> [UInt8] {
+        await acquire()
+        defer { release() }
         guard isInitialized else { throw SessionError.notInitialized }
         guard let service = request.first else { throw SessionError.invalidHex }
         try await select(ecu: ecu, quiet: quiet)
@@ -382,6 +411,8 @@ final class ELMSession: ObservableObject {
 
     /// Löscht die genormten OBD-II-Fehler (Modus 04). Setzt auch die Bereitschaftstests (Readiness) zurück.
     func clearOBDCodes() async throws {
+        await acquire()
+        defer { release() }
         try await useOBDAddressing()
         let lines = try await command("04", timeout: 8)
         let replies = ISOTP.messages(from: lines)

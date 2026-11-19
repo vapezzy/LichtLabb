@@ -65,6 +65,47 @@ final class LiveMonitor: ObservableObject {
         }
     }
 
+    // MARK: - AU-Bereitschaft (Modus 01, PID 01)
+
+    struct Readiness: Equatable {
+        struct Monitor: Equatable {
+            let name: String
+            let complete: Bool
+        }
+        /// Motorkontrollleuchte an
+        var mil: Bool
+        var dtcCount: Int
+        var diesel: Bool
+        var monitors: [Monitor]
+
+        var openCount: Int { monitors.filter { !$0.complete }.count }
+        var ready: Bool { !mil && openCount == 0 }
+    }
+
+    /// Bereitschaftstests nach SAE J1979: B = gemeinsame Tests (verfügbar Bit 0–2, unvollständig Bit 4–6),
+    /// C = verfügbare und D = unvollständige motorspezifische Tests (Diesel oder Benziner, je nach B3).
+    nonisolated static func decodeReadiness(_ d: [UInt8]) -> Readiness? {
+        guard d.count >= 4 else { return nil }
+        let a = d[0], b = d[1], c = d[2], e = d[3]
+        var monitors: [Readiness.Monitor] = []
+        for (bit, name) in [(0, "Zündaussetzer"), (1, "Kraftstoffsystem"), (2, "Bauteile")] where b & (UInt8(1) << bit) != 0 {
+            monitors.append(.init(name: name, complete: b & (UInt8(1) << (bit + 4)) == 0))
+        }
+        let diesel = b & 0x08 != 0
+        let names: [Int: String] = diesel
+            ? [0: "NMHC-Katalysator", 1: "NOx-Nachbehandlung", 3: "Ladedruck", 5: "Abgassensor", 6: "Partikelfilter", 7: "AGR/VVT"]
+            : [0: "Katalysator", 1: "Kat-Heizung", 2: "Tankentlüftung", 3: "Sekundärluft", 4: "Klimaanlage",
+               5: "Lambdasonde", 6: "Lambdasonden-Heizung", 7: "AGR/VVT"]
+        for bit in 0..<8 {
+            if let name = names[bit], c & (UInt8(1) << bit) != 0 {
+                monitors.append(.init(name: name, complete: e & (UInt8(1) << bit) == 0))
+            }
+        }
+        return Readiness(mil: a & 0x80 != 0, dtcCount: Int(a & 0x7F), diesel: diesel, monitors: monitors)
+    }
+
+    @Published private(set) var readiness: Readiness?
+
     enum State: Equatable {
         case idle, discovering, live
         case failed(String)
@@ -139,6 +180,10 @@ final class LiveMonitor: ObservableObject {
             state = .live
             var round = 0
             while !Task.isCancelled {
+                if supported.contains(0x01), round % 40 == 0,
+                   let data = try await session.readPID(0x01), let r = Self.decodeReadiness(data) {
+                    readiness = r
+                }
                 let due = Self.signals.filter { supported.contains($0.pid) && ($0.fast || round % 5 == 0) }
                 var next = values
                 for signal in due {
@@ -280,6 +325,7 @@ final class LiveMonitor: ObservableObject {
                     0x33: 1012, 0x42: 14.1, 0x1F: 12, 0x31: 1840,
                 ]
                 self.voltage = 14.05 + 0.05 * sin(t * 0.8)
+                self.readiness = Self.decodeReadiness([0x00, 0x0F, 0xEB, 0x40])
                 try? await Task.sleep(nanoseconds: 400_000_000)
             }
         }

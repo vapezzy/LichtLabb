@@ -5,6 +5,7 @@ struct HomeView: View {
     @EnvironmentObject private var ble: BLEManager
     @EnvironmentObject private var session: ELMSession
     @EnvironmentObject private var scanner: FaultScanner
+    @EnvironmentObject private var history: FaultHistory
     @Binding var tab: AppTab
 
     @State private var clearTarget: ClearTarget?
@@ -92,6 +93,7 @@ struct HomeView: View {
         .onChange(of: scanner.phase) { phase in
             if case .finished = phase {
                 scanner.totalFaults > 0 ? Haptics.warning() : Haptics.confirm()
+                history.record(scanner)
             }
         }
     }
@@ -280,7 +282,8 @@ struct HomeView: View {
                     isClearing: scanner.clearingAddress == result.address,
                     onClear: { clearTarget = .ecu(result.address, result.name) },
                     onWeb: { webLink = WebLink(url: $0) },
-                    onDPF: openDPF)
+                    onDPF: openDPF,
+                    isNew: { history.isNew(address: result.address, code: $0.code) && !scanner.isDemo })
             }
 
             if !scanner.obdCodes.isEmpty {
@@ -292,7 +295,8 @@ struct HomeView: View {
                     isClearing: scanner.clearingAddress == FaultScanner.obdAddress,
                     onClear: { clearTarget = .obd },
                     onWeb: { webLink = WebLink(url: $0) },
-                    onDPF: openDPF)
+                    onDPF: openDPF,
+                    isNew: { history.isNew(address: FaultScanner.obdAddress, code: $0.code) && !scanner.isDemo })
             }
 
             healthyList
@@ -346,6 +350,17 @@ struct HomeView: View {
                     Text(scanner.isDemo ? "Beispieldaten" : "in \(faultyECUs.count + (scanner.obdCodes.isEmpty ? 0 : 1)) Bereichen")
                         .font(Theme.rounded(13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            if !scanner.isDemo, let cmp = history.comparison, let prev = history.baseline {
+                HStack(spacing: 8) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .foregroundStyle(Theme.brandGradient)
+                    Text("Seit \(prev.date.formatted(date: .abbreviated, time: .omitted)):")
+                        .font(Theme.rounded(13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.7))
+                    CountChip(count: cmp.new, label: "neu", color: cmp.new > 0 ? Theme.fault : .gray)
+                    CountChip(count: cmp.gone, label: "weg", color: cmp.gone > 0 ? Theme.ok : .gray)
                 }
             }
             if let km = scanner.highestStoredMileage {

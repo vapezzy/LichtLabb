@@ -197,6 +197,12 @@ struct SettingsTab: View {
                     row("Diagnose-Konsole", icon: "terminal.fill", detail: "Befehle & Protokoll")
                 }
                 Divider().overlay(.white.opacity(0.08))
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    row("Fehler-Verlauf", icon: "clock.arrow.circlepath", detail: "alle Kontrollen")
+                }
+                Divider().overlay(.white.opacity(0.08))
                 Button {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .home }
                     scanner.runDemoScan()

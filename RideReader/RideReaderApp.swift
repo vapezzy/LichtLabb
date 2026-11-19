@@ -8,14 +8,21 @@ struct RideReaderApp: App {
     @StateObject private var scanner: FaultScanner
     @StateObject private var dpf: DPFMonitor
     @StateObject private var live: LiveMonitor
+    @StateObject private var history = FaultHistory()
 
     init() {
         let ble = BLEManager(startBluetooth: LaunchOptions.shot == nil)
         let session = ELMSession(ble: ble)
         _ble = StateObject(wrappedValue: ble)
         _session = StateObject(wrappedValue: session)
-        _scanner = StateObject(wrappedValue: FaultScanner(session: session))
-        _dpf = StateObject(wrappedValue: DPFMonitor(session: session))
+        let scanner = FaultScanner(session: session)
+        let dpf = DPFMonitor(session: session)
+        dpf.pauseWhen = { [weak scanner] in scanner?.isBusy ?? false }
+        dpf.onRegenChange = { RegenAlerts.regenChanged($0) }
+        dpf.onAlarmToggle = { on in if on { RegenAlerts.requestPermission() } }
+        RegenAlerts.setUp()
+        _scanner = StateObject(wrappedValue: scanner)
+        _dpf = StateObject(wrappedValue: dpf)
         _live = StateObject(wrappedValue: LiveMonitor(session: session))
     }
 
@@ -27,6 +34,7 @@ struct RideReaderApp: App {
                 .environmentObject(scanner)
                 .environmentObject(dpf)
                 .environmentObject(live)
+                .environmentObject(history)
                 .preferredColorScheme(.dark)
         }
     }
@@ -66,6 +74,8 @@ enum AppTab: String, CaseIterable {
 
 struct RootView: View {
     @EnvironmentObject private var scanner: FaultScanner
+    @EnvironmentObject private var session: ELMSession
+    @EnvironmentObject private var dpf: DPFMonitor
 
     @State private var showIntro: Bool
     /// Startseite sichtbar – wird schon während des Intros gesetzt, damit sie sich unter dem Schriftzug aufbaut
@@ -107,6 +117,19 @@ struct RootView: View {
             // Während Kontrolle/Löschen ist alles darunter verdeckt – nicht weiter animieren und zeichnen
             .opacity(scanner.isBusy ? 0 : 1)
 
+            // Regeneration läuft – Banner über allen Tabs, solange der Alarm an ist
+            if dpf.alarmEnabled && !dpf.isDemo && dpf.reading.regenerating && !scanner.isBusy {
+                RegenBanner()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .dpf }
+                    }
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .pageWidth()
+                    .padding(.top, 6)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(4)
+            }
+
             if scanner.isBusy {
                 ScanOverlay()
                     .transition(.blurFade)
@@ -127,6 +150,8 @@ struct RootView: View {
         .background(Theme.background.ignoresSafeArea())
         .animation(.spring(response: 0.5, dampingFraction: 0.86), value: scanner.isBusy)
         .onAppear(perform: applyShot)
+        .onChange(of: session.isInitialized) { connected in dpf.connectionChanged(connected) }
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: dpf.reading.regenerating)
     }
 
     private func replayIntro() {
@@ -276,5 +301,44 @@ struct ScanOverlay: View {
             return address == FaultScanner.obdAddress ? "OBD-II wird geputzt …" : "\(FaultScanner.name(for: address)) wird geputzt …"
         }
         return "Einen Moment …"
+    }
+}
+
+/// Hinweis oben auf allen Seiten: Der Rußfilter regeneriert gerade.
+struct RegenBanner: View {
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(LinearGradient(colors: [.yellow, Theme.fault, Theme.severe], startPoint: .top, endPoint: .bottom))
+                .scaleEffect(pulse ? 1.15 : 0.92)
+                .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulse)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Regeneration läuft")
+                    .font(Theme.rounded(15, weight: .bold))
+                Text("Motor jetzt nicht abstellen.")
+                    .font(Theme.rounded(12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.75))
+            }
+            Spacer(minLength: 0)
+            DPFLampIcon(size: 22)
+                .foregroundStyle(Theme.fault)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: [Color(red: 0.35, green: 0.12, blue: 0.05), Color(red: 0.22, green: 0.06, blue: 0.12)],
+                                     startPoint: .leading, endPoint: .trailing))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(LinearGradient(colors: [Theme.fault, Theme.magenta.opacity(0.6)], startPoint: .leading, endPoint: .trailing),
+                              lineWidth: 1.2)
+        )
+        .foregroundStyle(.white)
+        .onAppear { pulse = true }
     }
 }

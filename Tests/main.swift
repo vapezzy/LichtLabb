@@ -225,6 +225,14 @@ func run() async {
     check(FaultScanner.mileage(fromSnapshot: snap) == 148_912, "höchster Datensatz zählt (\(FaultScanner.mileage(fromSnapshot: snap) ?? -1))")
     check(FaultScanner.mileage(fromSnapshot: [0x7F, 0x19, 0x31]) == nil, "Ablehnung → kein km-Stand")
 
+    print("AU-Bereitschaft")
+    // Diesel (B3), Zündaussetzer/Kraftstoff/Bauteile verfügbar & fertig; C: NMHC, NOx, Ladedruck, Abgassensor, PF, AGR; D: Partikelfilter offen
+    if let r = LiveMonitor.decodeReadiness([0x00, 0x0F, 0xEB, 0x40]) {
+        check(r.diesel && !r.mil && r.monitors.count == 9, "Diesel, 9 Tests (\(r.monitors.count))")
+        check(r.openCount == 1 && r.monitors.first { !$0.complete }?.name == "Partikelfilter", "nur Partikelfilter offen")
+    } else { check(false, "Readiness dekodiert") }
+    check(LiveMonitor.decodeReadiness([0x81, 0x07, 0x00, 0x00])?.mil == true, "MIL an erkannt")
+
     print(failures == 0 ? "\nAlle Tests bestanden." : "\n\(failures) Test(s) fehlgeschlagen.")
     exit(failures == 0 ? 0 : 1)
 }

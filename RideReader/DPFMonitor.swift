@@ -50,6 +50,21 @@ final class DPFMonitor: ObservableObject {
     @Published private(set) var isDemo = false
     @Published private(set) var lastUpdate: Date?
 
+    /// Regenerations-Alarm: Überwachung läuft weiter, auch wenn der DPF-Tab nicht offen ist.
+    @Published var alarmEnabled = UserDefaults.standard.bool(forKey: "dpfAlarm") {
+        didSet {
+            UserDefaults.standard.set(alarmEnabled, forKey: "dpfAlarm")
+            onAlarmToggle?(alarmEnabled)
+        }
+    }
+    /// Wird bei Beginn (true) und Ende (false) einer echten Regeneration aufgerufen (Haptik, Mitteilung).
+    var onRegenChange: (@MainActor (Bool) -> Void)?
+    var onAlarmToggle: (@MainActor (Bool) -> Void)?
+    /// Pausieren, solange z. B. eine Kontrolle läuft (die soll nicht ausgebremst werden)
+    var pauseWhen: @MainActor () -> Bool = { false }
+    /// DPF-Tab ist gerade sichtbar
+    private var viewVisible = false
+
     private let session: ELMSession
     private var task: Task<Void, Never>?
 
@@ -73,6 +88,28 @@ final class DPFMonitor: ObservableObject {
         task = Task { [weak self] in await self?.run() }
     }
 
+    /// DPF-Tab erscheint
+    func viewAppeared() {
+        viewVisible = true
+        start()
+    }
+
+    /// DPF-Tab verschwindet: mit Alarm weiter überwachen, sonst anhalten.
+    func viewDisappeared() {
+        viewVisible = false
+        if alarmEnabled && !isDemo { return }
+        stop()
+    }
+
+    /// Verbindung steht (oder ist weg): Alarm-Überwachung starten bzw. Seite aktualisieren.
+    func connectionChanged(_ connected: Bool) {
+        if viewVisible || (alarmEnabled && connected) {
+            start()
+        } else if !connected {
+            stop()
+        }
+    }
+
     func stop() {
         task?.cancel()
         task = nil
@@ -91,6 +128,11 @@ final class DPFMonitor: ObservableObject {
             }
             state = .live
             while !Task.isCancelled {
+                if pauseWhen() {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    continue
+                }
+                let wasRegenerating = reading.regenerating
                 var next = reading
                 for pid in pids {
                     if Task.isCancelled { break }
@@ -100,7 +142,11 @@ final class DPFMonitor: ObservableObject {
                 }
                 reading = next
                 lastUpdate = Date()
-                try? await Task.sleep(nanoseconds: 600_000_000)
+                if next.regenerating != wasRegenerating, alarmEnabled {
+                    onRegenChange?(next.regenerating)
+                }
+                // Im Hintergrund (Tab zu) gemütlicher abfragen
+                try? await Task.sleep(nanoseconds: viewVisible ? 600_000_000 : 2_500_000_000)
             }
         } catch {
             if !Task.isCancelled {

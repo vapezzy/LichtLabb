@@ -14,18 +14,20 @@
 		900000000000000000000005 /* DPFView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000005 /* DPFView.swift */; };
 		900000000000000000000006 /* ELMSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000006 /* ELMSession.swift */; };
 		900000000000000000000007 /* FaultCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000007 /* FaultCatalog.swift */; };
-		900000000000000000000008 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* FaultScanner.swift */; };
-		900000000000000000000009 /* FaultViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* FaultViews.swift */; };
-		90000000000000000000000A /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* Hex.swift */; };
-		90000000000000000000000B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* HomeView.swift */; };
-		90000000000000000000000C /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* IntroView.swift */; };
-		90000000000000000000000D /* LiveMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* LiveMonitor.swift */; };
-		90000000000000000000000E /* LiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LiveView.swift */; };
-		90000000000000000000000F /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* MechanicsLoader.swift */; };
-		900000000000000000000010 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* Platform.swift */; };
-		900000000000000000000011 /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* RideReaderApp.swift */; };
-		900000000000000000000012 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* SettingsTab.swift */; };
-		900000000000000000000013 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* Theme.swift */; };
+		900000000000000000000008 /* FaultHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000008 /* FaultHistory.swift */; };
+		900000000000000000000009 /* FaultScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000009 /* FaultScanner.swift */; };
+		90000000000000000000000A /* FaultViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000A /* FaultViews.swift */; };
+		90000000000000000000000B /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000B /* Hex.swift */; };
+		90000000000000000000000C /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000C /* HomeView.swift */; };
+		90000000000000000000000D /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000D /* IntroView.swift */; };
+		90000000000000000000000E /* LiveMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LiveMonitor.swift */; };
+		90000000000000000000000F /* LiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* LiveView.swift */; };
+		900000000000000000000010 /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* MechanicsLoader.swift */; };
+		900000000000000000000011 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Platform.swift */; };
+		900000000000000000000012 /* RegenAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* RegenAlerts.swift */; };
+		900000000000000000000013 /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* RideReaderApp.swift */; };
+		900000000000000000000014 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* SettingsTab.swift */; };
+		900000000000000000000015 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,18 +39,20 @@
 		F00000000000000000000005 /* DPFView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPFView.swift; sourceTree = "<group>"; };
 		F00000000000000000000006 /* ELMSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ELMSession.swift; sourceTree = "<group>"; };
 		F00000000000000000000007 /* FaultCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultCatalog.swift; sourceTree = "<group>"; };
-		F00000000000000000000008 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
-		F00000000000000000000009 /* FaultViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultViews.swift; sourceTree = "<group>"; };
-		F0000000000000000000000A /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
-		F0000000000000000000000B /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000C /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000D /* LiveMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitor.swift; sourceTree = "<group>"; };
-		F0000000000000000000000E /* LiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveView.swift; sourceTree = "<group>"; };
-		F0000000000000000000000F /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
-		F00000000000000000000010 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F00000000000000000000011 /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
-		F00000000000000000000012 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
-		F00000000000000000000013 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F00000000000000000000008 /* FaultHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultHistory.swift; sourceTree = "<group>"; };
+		F00000000000000000000009 /* FaultScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultScanner.swift; sourceTree = "<group>"; };
+		F0000000000000000000000A /* FaultViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultViews.swift; sourceTree = "<group>"; };
+		F0000000000000000000000B /* Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hex.swift; sourceTree = "<group>"; };
+		F0000000000000000000000C /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000D /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
+		F0000000000000000000000E /* LiveMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitor.swift; sourceTree = "<group>"; };
+		F0000000000000000000000F /* LiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveView.swift; sourceTree = "<group>"; };
+		F00000000000000000000010 /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F00000000000000000000012 /* RegenAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegenAlerts.swift; sourceTree = "<group>"; };
+		F00000000000000000000013 /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
+		F00000000000000000000014 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		F00000000000000000000015 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,18 +84,20 @@
 				F00000000000000000000005 /* DPFView.swift */,
 				F00000000000000000000006 /* ELMSession.swift */,
 				F00000000000000000000007 /* FaultCatalog.swift */,
-				F00000000000000000000008 /* FaultScanner.swift */,
-				F00000000000000000000009 /* FaultViews.swift */,
-				F0000000000000000000000A /* Hex.swift */,
-				F0000000000000000000000B /* HomeView.swift */,
-				F0000000000000000000000C /* IntroView.swift */,
-				F0000000000000000000000D /* LiveMonitor.swift */,
-				F0000000000000000000000E /* LiveView.swift */,
-				F0000000000000000000000F /* MechanicsLoader.swift */,
-				F00000000000000000000010 /* Platform.swift */,
-				F00000000000000000000011 /* RideReaderApp.swift */,
-				F00000000000000000000012 /* SettingsTab.swift */,
-				F00000000000000000000013 /* Theme.swift */,
+				F00000000000000000000008 /* FaultHistory.swift */,
+				F00000000000000000000009 /* FaultScanner.swift */,
+				F0000000000000000000000A /* FaultViews.swift */,
+				F0000000000000000000000B /* Hex.swift */,
+				F0000000000000000000000C /* HomeView.swift */,
+				F0000000000000000000000D /* IntroView.swift */,
+				F0000000000000000000000E /* LiveMonitor.swift */,
+				F0000000000000000000000F /* LiveView.swift */,
+				F00000000000000000000010 /* MechanicsLoader.swift */,
+				F00000000000000000000011 /* Platform.swift */,
+				F00000000000000000000012 /* RegenAlerts.swift */,
+				F00000000000000000000013 /* RideReaderApp.swift */,
+				F00000000000000000000014 /* SettingsTab.swift */,
+				F00000000000000000000015 /* Theme.swift */,
 			);
 			path = RideReader;
 			sourceTree = "<group>";
@@ -179,18 +185,20 @@
 				900000000000000000000005 /* DPFView.swift in Sources */,
 				900000000000000000000006 /* ELMSession.swift in Sources */,
 				900000000000000000000007 /* FaultCatalog.swift in Sources */,
-				900000000000000000000008 /* FaultScanner.swift in Sources */,
-				900000000000000000000009 /* FaultViews.swift in Sources */,
-				90000000000000000000000A /* Hex.swift in Sources */,
-				90000000000000000000000B /* HomeView.swift in Sources */,
-				90000000000000000000000C /* IntroView.swift in Sources */,
-				90000000000000000000000D /* LiveMonitor.swift in Sources */,
-				90000000000000000000000E /* LiveView.swift in Sources */,
-				90000000000000000000000F /* MechanicsLoader.swift in Sources */,
-				900000000000000000000010 /* Platform.swift in Sources */,
-				900000000000000000000011 /* RideReaderApp.swift in Sources */,
-				900000000000000000000012 /* SettingsTab.swift in Sources */,
-				900000000000000000000013 /* Theme.swift in Sources */,
+				900000000000000000000008 /* FaultHistory.swift in Sources */,
+				900000000000000000000009 /* FaultScanner.swift in Sources */,
+				90000000000000000000000A /* FaultViews.swift in Sources */,
+				90000000000000000000000B /* Hex.swift in Sources */,
+				90000000000000000000000C /* HomeView.swift in Sources */,
+				90000000000000000000000D /* IntroView.swift in Sources */,
+				90000000000000000000000E /* LiveMonitor.swift in Sources */,
+				90000000000000000000000F /* LiveView.swift in Sources */,
+				900000000000000000000010 /* MechanicsLoader.swift in Sources */,
+				900000000000000000000011 /* Platform.swift in Sources */,
+				900000000000000000000012 /* RegenAlerts.swift in Sources */,
+				900000000000000000000013 /* RideReaderApp.swift in Sources */,
+				900000000000000000000014 /* SettingsTab.swift in Sources */,
+				900000000000000000000015 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

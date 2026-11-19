@@ -13,6 +13,7 @@ struct ECUSection: View {
     var onClear: () -> Void
     var onWeb: (URL) -> Void
     var onDPF: () -> Void = {}
+    var isNew: (FaultCode) -> Bool = { _ in false }
 
     var body: some View {
         let infos = faults.map { FaultCatalog.info(for: $0, ecu: ecu) }
@@ -55,7 +56,7 @@ struct ECUSection: View {
             .padding(.horizontal, 4)
 
             ForEach(Array(zip(faults, infos)), id: \.0.id) { fault, info in
-                FaultCard(fault: fault, info: info, onWeb: { onWeb(info.searchURL) }, onDPF: onDPF)
+                FaultCard(fault: fault, info: info, onWeb: { onWeb(info.searchURL) }, onDPF: onDPF, isNew: isNew(fault))
             }
         }
     }
@@ -68,6 +69,8 @@ struct FaultCard: View {
     var info: FaultInfo
     var onWeb: () -> Void
     var onDPF: () -> Void = {}
+    /// Neu seit der letzten Kontrolle
+    var isNew = false
 
     @State private var expanded = false
 
@@ -90,6 +93,16 @@ struct FaultCard: View {
                         .font(.system(size: 10, weight: .heavy))
                         .tracking(1.2)
                         .foregroundStyle(color.opacity(0.9))
+                    if isNew {
+                        Text("NEU")
+                            .font(.system(size: 10, weight: .heavy))
+                            .tracking(1)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(LinearGradient(colors: [Theme.violet, Theme.magenta],
+                                                                      startPoint: .leading, endPoint: .trailing)))
+                    }
                     Spacer(minLength: 0)
                 }
 
