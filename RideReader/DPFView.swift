@@ -261,6 +261,7 @@ struct SootGauge: View {
                                   style: StrokeStyle(lineWidth: 2, dash: [4, 8]))
                     .padding(-14)
                     .rotationEffect(.degrees(spin ? 360 : 0))
+                    .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: spin)
                     .transition(.opacity)
             }
 
@@ -282,7 +283,7 @@ struct SootGauge: View {
         }
         .animation(.easeOut(duration: 0.5), value: fraction)
         .onAppear {
-            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) { spin = true }
+            spin = true
         }
     }
 
@@ -359,8 +360,7 @@ private struct PulseModifier: ViewModifier {
         content
             .scaleEffect(active && on ? 1.12 : 1)
             .opacity(active && on ? 0.75 : 1)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { on = true }
-            }
+            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: on)
+            .onAppear { on = true }
     }
 }

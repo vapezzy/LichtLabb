@@ -60,7 +60,13 @@ final class ELMSession: ObservableObject {
         }
     }
 
-    @Published private(set) var log: [LogEntry] = []
+    /// Protokoll in eigenem Objekt: neue Zeilen lassen nur die Konsole neu zeichnen, nicht die ganze App.
+    final class LogStore: ObservableObject {
+        @Published fileprivate(set) var entries: [LogEntry] = []
+    }
+
+    let logStore = LogStore()
+    var log: [LogEntry] { logStore.entries }
     @Published private(set) var isInitialized = false
     @Published private(set) var adapterInfo: String?
 
@@ -392,7 +398,7 @@ final class ELMSession: ObservableObject {
 
     func info(_ text: String) { append(.info, text) }
     func error(_ text: String) { append(.error, text) }
-    func clearLog() { log = [] }
+    func clearLog() { logStore.entries = [] }
 
     var logText: String {
         let formatter = DateFormatter()
@@ -410,7 +416,9 @@ final class ELMSession: ObservableObject {
     }
 
     private func append(_ kind: LogEntry.Kind, _ text: String) {
-        log.append(LogEntry(kind: kind, text: text))
-        if log.count > 1000 { log.removeFirst(log.count - 1000) }
+        var entries = logStore.entries
+        entries.append(LogEntry(kind: kind, text: text))
+        if entries.count > 1000 { entries.removeFirst(entries.count - 1000) }
+        logStore.entries = entries
     }
 }

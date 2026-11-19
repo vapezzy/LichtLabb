@@ -190,6 +190,7 @@ struct AmbientBackground: View {
             .fill(RadialGradient(colors: [color, color.opacity(0.45), color.opacity(0)],
                                  center: .center, startRadius: 0, endRadius: size / 2))
             .frame(width: size, height: size)
+            .drawingGroup()          // einmal als Textur gerendert, danach nur noch verschoben
             .offset(x: x, y: y)
     }
 }

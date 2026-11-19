@@ -490,6 +490,7 @@ struct ControlOrb: View {
                 Circle()
                     .strokeBorder(AngularGradient(colors: ringColors, center: .center), lineWidth: 3.5)
                     .rotationEffect(.degrees(spin ? 360 : 0))
+                    .animation(.linear(duration: 14).repeatForever(autoreverses: false), value: spin)
 
                 // Innere Glasscheibe
                 Circle()
@@ -505,6 +506,7 @@ struct ControlOrb: View {
                     .stroke(.white.opacity(0.16), style: StrokeStyle(lineWidth: 1, dash: [1.5, 7]))
                     .padding(22)
                     .rotationEffect(.degrees(spin ? -360 : 0))
+                    .animation(.linear(duration: 14).repeatForever(autoreverses: false), value: spin)
 
                 // Kreisender Lichtpunkt auf dem Ring
                 ZStack {
@@ -513,6 +515,7 @@ struct ControlOrb: View {
                 }
                 .offset(y: -(diameter / 2 - 1.75))
                     .rotationEffect(.degrees(spin ? 360 : 0))
+                    .animation(.linear(duration: 14).repeatForever(autoreverses: false), value: spin)
 
                 VStack(spacing: 8) {
                     Image(systemName: "wrench.and.screwdriver.fill")
@@ -545,16 +548,22 @@ struct ControlOrb: View {
                         .frame(width: diameter * 1.1, height: diameter * 1.1)
                         .offset(x: -diameter * 0.02, y: diameter * 0.14)
                 }
+                .padding(diameter * 0.25)  // Rand, damit die verschobenen Flecken in der Textur nicht abgeschnitten werden
+                .drawingGroup()      // statischer Glow als Textur – Drehen/Atmen kostet dann fast nichts
                 .opacity(breathe ? 1 : 0.6)
                 .scaleEffect(breathe ? 1.05 : 0.95)
+                .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: breathe)
                 .rotationEffect(.degrees(spin ? 360 : 0))
+                .animation(.linear(duration: 14).repeatForever(autoreverses: false), value: spin)
             }
             .contentShape(Circle())
         }
         .buttonStyle(PressableStyle())
         .onAppear {
-            withAnimation(.linear(duration: 14).repeatForever(autoreverses: false)) { spin = true }
-            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) { breathe = true }
+            // Animationen sind direkt an den Modifiern festgemacht (siehe .animation(value:)) – so können sie
+            // niemals Layout-Änderungen „einfangen“ und endlos wiederholen (Wackeln).
+            spin = true
+            breathe = true
         }
         .animation(.easeInOut(duration: 0.8), value: healthy)
     }
@@ -573,11 +582,12 @@ struct Shimmer: View {
                 .rotationEffect(.degrees(18))
                 // Weg ist viel länger als der Knopf → nach dem Durchlauf ~2 s Pause, ohne Timer
                 .offset(x: move ? w * 3.2 : -w * 0.5)
+                .animation(.linear(duration: 3.2).repeatForever(autoreverses: false), value: move)
         }
         .clipped()
         .allowsHitTesting(false)
         .onAppear {
-            withAnimation(.linear(duration: 3.2).repeatForever(autoreverses: false)) { move = true }
+            move = true
         }
     }
 }

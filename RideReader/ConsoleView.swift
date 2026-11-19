@@ -35,24 +35,7 @@ struct ConsoleView: View {
     }
 
     private var logView: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 4) {
-                    ForEach(session.log) { entry in
-                        Text(prefix(entry.kind) + entry.text)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(color(entry.kind))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .id(entry.id)
-                    }
-                }
-                .padding()
-            }
-            .onReceive(session.$log) { log in
-                if let last = log.last { proxy.scrollTo(last.id, anchor: .bottom) }
-            }
-        }
+        ConsoleLogList(store: session.logStore, prefix: prefix, color: color)
     }
 
     private var controls: some View {
@@ -126,6 +109,34 @@ struct ConsoleView: View {
         case .received: return .primary
         case .info: return .green
         case .error: return .red
+        }
+    }
+}
+
+/// Liste der Protokollzeilen – beobachtet nur das Protokoll.
+private struct ConsoleLogList: View {
+    @ObservedObject var store: ELMSession.LogStore
+    let prefix: (ELMSession.LogEntry.Kind) -> String
+    let color: (ELMSession.LogEntry.Kind) -> Color
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    ForEach(store.entries) { entry in
+                        Text(prefix(entry.kind) + entry.text)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(color(entry.kind))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .id(entry.id)
+                    }
+                }
+                .padding()
+            }
+            .onReceive(store.$entries) { entries in
+                if let last = entries.last { proxy.scrollTo(last.id, anchor: .bottom) }
+            }
         }
     }
 }

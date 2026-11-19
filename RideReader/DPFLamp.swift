@@ -61,9 +61,10 @@ struct CrewHint: View {
             .frame(width: 40, height: 52)
             .offset(y: bob ? -2 : 1)
             .rotationEffect(.degrees(bob ? 3 : -2), anchor: .bottom)
+            .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: bob)
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { bob = true }
+            bob = true
         }
     }
 }
