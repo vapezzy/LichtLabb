@@ -29,6 +29,7 @@ struct SettingsTab: View {
                         .buildIn(0)
 
                         connectionCard.buildIn(1)
+                        section("Design") { ThemePicker() }.buildIn(2)
                         section("Kontrolle") { ModePicker(mode: $scanner.mode) }.buildIn(2)
                         toolsCard.buildIn(3)
                         tipsCard.buildIn(4)
@@ -172,13 +173,14 @@ struct SettingsTab: View {
         } label: {
             Label(title, systemImage: icon)
                 .font(Theme.rounded(15, weight: .bold))
-                .foregroundStyle(filled ? Color.white : color)
+                .foregroundStyle(filled ? (color == Theme.accent ? Theme.onButton : .white) : color)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
                     Capsule().fill(filled
-                                   ? AnyShapeStyle(LinearGradient(colors: [color, Theme.violet.opacity(0.85)],
-                                                                  startPoint: .leading, endPoint: .trailing))
+                                   ? (color == Theme.accent ? AnyShapeStyle(Theme.buttonGradient)
+                                      : AnyShapeStyle(LinearGradient(colors: [color, color.opacity(0.7)],
+                                                                     startPoint: .leading, endPoint: .trailing)))
                                    : AnyShapeStyle(color.opacity(0.12)))
                 )
                 .overlay(Capsule().strokeBorder(color.opacity(filled ? 0 : 0.45), lineWidth: 1))

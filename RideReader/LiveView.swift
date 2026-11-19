@@ -26,7 +26,8 @@ struct LiveView: View {
                                 .font(Theme.rounded(15, weight: .bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 13)
-                                .background(Capsule().fill(Theme.brandGradient))
+                                .foregroundStyle(Theme.onButton)
+                                .background(Capsule().fill(Theme.buttonGradient))
                         }
                         .buttonStyle(PressableStyle())
                     case .idle, .discovering:
@@ -236,9 +237,9 @@ struct LiveView: View {
             Label(title, systemImage: icon)
                 .font(Theme.rounded(15, weight: .bold))
                 .frame(maxWidth: .infinity)
+                .foregroundStyle(Theme.onButton)
                 .padding(.vertical, 13)
-                .background(Capsule().fill(LinearGradient(colors: [Theme.accentDeep, Theme.violet, Theme.magenta.opacity(0.9)],
-                                                          startPoint: .leading, endPoint: .trailing)))
+                .background(Capsule().fill(Theme.buttonGradient))
         }
         .buttonStyle(PressableStyle())
     }

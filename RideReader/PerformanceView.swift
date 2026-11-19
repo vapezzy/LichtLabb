@@ -156,12 +156,12 @@ struct PerformanceView: View {
                 Label(showArm ? (perf.phase == .idle ? "Scharf schalten" : "Nochmal") : "Abbrechen",
                       systemImage: showArm ? "flag.checkered" : "xmark")
                     .font(Theme.rounded(16, weight: .bold))
+                    .foregroundStyle(showArm ? Theme.onButton : .white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
                         Capsule().fill(showArm
-                                       ? AnyShapeStyle(LinearGradient(colors: [Theme.accentDeep, Theme.violet, Theme.magenta.opacity(0.9)],
-                                                                      startPoint: .leading, endPoint: .trailing))
+                                       ? AnyShapeStyle(Theme.buttonGradient)
                                        : AnyShapeStyle(Color.white.opacity(0.1)))
                     )
             }

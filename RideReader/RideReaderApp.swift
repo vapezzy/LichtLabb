@@ -10,8 +10,11 @@ struct RideReaderApp: App {
     @StateObject private var live: LiveMonitor
     @StateObject private var history = FaultHistory()
     @StateObject private var perf: PerformanceMonitor
+    @StateObject private var theme: ThemeStore
 
     init() {
+        // Design zuerst laden, damit schon das Intro in den richtigen Farben läuft
+        _theme = StateObject(wrappedValue: ThemeStore())
         let ble = BLEManager(startBluetooth: LaunchOptions.shot == nil)
         let session = ELMSession(ble: ble)
         _ble = StateObject(wrappedValue: ble)
@@ -40,6 +43,7 @@ struct RideReaderApp: App {
                 .environmentObject(live)
                 .environmentObject(history)
                 .environmentObject(perf)
+                .environmentObject(theme)
                 .preferredColorScheme(.dark)
         }
     }
@@ -81,6 +85,7 @@ struct RootView: View {
     @EnvironmentObject private var scanner: FaultScanner
     @EnvironmentObject private var session: ELMSession
     @EnvironmentObject private var dpf: DPFMonitor
+    @EnvironmentObject private var theme: ThemeStore
 
     @State private var showIntro: Bool
     /// Startseite sichtbar – wird schon während des Intros gesetzt, damit sie sich unter dem Schriftzug aufbaut
@@ -119,6 +124,8 @@ struct RootView: View {
                     .buildIn(7, rise: 40)
             }
             .environment(\.pageRevealed, revealed)
+            // Designwechsel: Oberfläche mit den neuen Farben neu aufbauen (Tab bleibt)
+            .id(theme.revision)
             // Während Kontrolle/Löschen ist alles darunter verdeckt – nicht weiter animieren und zeichnen
             .opacity(scanner.isBusy ? 0 : 1)
 
@@ -206,14 +213,13 @@ struct TabBar: View {
                                 .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .leading)))
                         }
                     }
-                    .foregroundStyle(selected ? Color.white : .white.opacity(0.6))
+                    .foregroundStyle(selected ? Theme.onButton : .white.opacity(0.6))
                     .padding(.horizontal, selected ? 18 : 16)
                     .padding(.vertical, 12)
                     .background {
                         if selected {
                             Capsule()
-                                .fill(LinearGradient(colors: [Theme.accentDeep, Theme.violet, Theme.magenta.opacity(0.9)],
-                                                     startPoint: .leading, endPoint: .trailing))
+                                .fill(Theme.buttonGradient)
                                 .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
                                 .matchedGeometryEffect(id: "pill", in: namespace)
                         }

@@ -2,24 +2,34 @@ import SwiftUI
 
 /// Farben, Schriften und wiederverwendbare Effekte von RideReader.
 enum Theme {
-    static let background = Color(red: 0.027, green: 0.031, blue: 0.045)
+    // Markenfarben kommen aus dem gewählten Design (ThemeStore) – Original, M, AMG, S-Line oder eigenes.
+    static var background: Color { Palette.current.background }
     static let surface = Color(red: 0.075, green: 0.082, blue: 0.105)
-    /// Markenfarbe: elektrisches Cyan
-    static let accent = Color(red: 0.36, green: 0.92, blue: 1.0)
-    static let accentDeep = Color(red: 0.27, green: 0.45, blue: 1.0)
+    /// Hauptfarbe des Designs (Original: elektrisches Cyan)
+    static var accent: Color { Palette.current.accent }
+    static var accentDeep: Color { Palette.current.accentDeep }
     static let ok = Color(red: 0.32, green: 0.95, blue: 0.62)
     /// Orange = Fehler
     static let fault = Color(red: 1.0, green: 0.6, blue: 0.14)
     /// Rot = schwerwiegender Fehler
     static let severe = Color(red: 1.0, green: 0.25, blue: 0.3)
 
-    static let violet = Color(red: 0.6, green: 0.38, blue: 1.0)
-    static let magenta = Color(red: 1.0, green: 0.34, blue: 0.74)
+    static var violet: Color { Palette.current.violet }
+    static var magenta: Color { Palette.current.magenta }
 
-    /// Markenverlauf Cyan → Blau → Violett → Magenta
-    static let brandColors: [Color] = [accent, accentDeep, violet, magenta]
+    /// Markenverlauf (Original: Cyan → Blau → Violett → Magenta)
+    static var brandColors: [Color] { [accent, accentDeep, violet, magenta] }
     /// Geschlossener Verlauf für Ringe (Anfang = Ende)
-    static let brandLoop: [Color] = [accent, accentDeep, violet, magenta, accent]
+    static var brandLoop: [Color] { [accent, accentDeep, violet, magenta, accent] }
+
+    /// Gefüllte Knöpfe (Tab-Leiste, Haupt-Aktionen) – Schrift darauf: `onButton`
+    static var buttonGradient: LinearGradient {
+        let p = Palette.current
+        let colors = p.buttonColors.isEmpty ? [p.accentDeep, p.violet, p.magenta.opacity(0.9)] : p.buttonColors
+        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+    }
+
+    static var onButton: Color { Palette.current.onButton }
 
     static var brandGradient: LinearGradient {
         LinearGradient(colors: [accent, violet, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -32,7 +42,7 @@ enum Theme {
 
     /// Verlauf für Überschriften
     static var titleGradient: LinearGradient {
-        LinearGradient(colors: [.white, Color(red: 0.75, green: 0.93, blue: 1), violet.opacity(0.95)],
+        LinearGradient(colors: [.white, Palette.current.titleMid, violet.opacity(0.95)],
                        startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 

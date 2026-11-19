@@ -6,6 +6,7 @@ struct HomeView: View {
     @EnvironmentObject private var session: ELMSession
     @EnvironmentObject private var scanner: FaultScanner
     @EnvironmentObject private var history: FaultHistory
+    @EnvironmentObject private var theme: ThemeStore
     @Binding var tab: AppTab
 
     @State private var clearTarget: ClearTarget?
@@ -103,9 +104,18 @@ struct HomeView: View {
     private var header: some View {
         VStack(spacing: 18) {
             // Schriftzug – an genau der Stelle, an der das Intro ihn absetzt
-            LogoMark(size: IntroView.headerLogoSize)
-                .frame(height: 32)
-                .buildIn(delay: 0.85)
+            VStack(spacing: 4) {
+                LogoMark(size: IntroView.headerLogoSize)
+                    .frame(height: 32)
+                    .buildIn(delay: 0.85)
+                if let edition = theme.editionLabel {
+                    Text(edition)
+                        .font(.system(size: 13, weight: .light))
+                        .tracking(2.2)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .buildIn(delay: 1.0)
+                }
+            }
 
             ConnectionChip()
                 .onTapGesture {
@@ -224,11 +234,10 @@ struct HomeView: View {
                 } label: {
                     Text("Verbinden")
                         .font(Theme.rounded(14, weight: .bold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Theme.onButton)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
-                        .background(Capsule().fill(LinearGradient(colors: [Theme.accent, Theme.violet.opacity(0.9)],
-                                                                  startPoint: .leading, endPoint: .trailing)))
+                        .background(Capsule().fill(Theme.buttonGradient))
                 }
                 Button {
                     showNotConnected = false

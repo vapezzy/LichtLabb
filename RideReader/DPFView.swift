@@ -110,7 +110,8 @@ struct DPFView: View {
                     .font(Theme.rounded(15, weight: .bold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
-                    .background(Capsule().fill(Theme.brandGradient))
+                    .foregroundStyle(Theme.onButton)
+                    .background(Capsule().fill(Theme.buttonGradient))
             }
             .buttonStyle(PressableStyle())
             tipsCard
