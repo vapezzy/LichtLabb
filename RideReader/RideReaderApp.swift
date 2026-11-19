@@ -11,6 +11,7 @@ struct RideReaderApp: App {
     @StateObject private var history = FaultHistory()
     @StateObject private var perf: PerformanceMonitor
     @StateObject private var theme: ThemeStore
+    @StateObject private var routines = RoutineStore()
 
     init() {
         // Design zuerst laden, damit schon das Intro in den richtigen Farben läuft
@@ -44,6 +45,7 @@ struct RideReaderApp: App {
                 .environmentObject(history)
                 .environmentObject(perf)
                 .environmentObject(theme)
+                .environmentObject(routines)
                 .preferredColorScheme(.dark)
         }
     }
@@ -64,7 +66,7 @@ enum AppTab: String, CaseIterable {
     var title: String {
         switch self {
         case .home: return "Zuhause"
-        case .dpf: return "DPF"
+        case .dpf: return "Service"
         case .live: return "Live"
         case .settings: return "Einstellungen"
         }
@@ -74,7 +76,7 @@ enum AppTab: String, CaseIterable {
     var icon: String? {
         switch self {
         case .home: return "house.fill"
-        case .dpf: return nil
+        case .dpf: return "wrench.and.screwdriver.fill"
         case .live: return "waveform.path.ecg"
         case .settings: return "gearshape.fill"
         }
@@ -108,7 +110,7 @@ struct RootView: View {
                     HomeView(tab: $tab)
                         .transition(.blurFade)
                 case .dpf:
-                    DPFView(showsClose: false)
+                    ServiceView()
                         .transition(.blurFade)
                 case .live:
                     LiveView()
@@ -133,6 +135,7 @@ struct RootView: View {
             if dpf.alarmEnabled && !dpf.isDemo && dpf.reading.regenerating && !scanner.isBusy {
                 RegenBanner()
                     .onTapGesture {
+                        ServiceView.open(.dpf)
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .dpf }
                     }
                     .frame(maxHeight: .infinity, alignment: .top)

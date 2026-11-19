@@ -192,6 +192,7 @@ struct HomeView: View {
     private var dpfTile: some View {
         Button {
             Haptics.tap()
+            ServiceView.open(.dpf)
             withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .dpf }
         } label: {
             HStack(spacing: 14) {
@@ -463,6 +464,7 @@ struct HomeView: View {
     }
 
     private func openDPF() {
+        ServiceView.open(.dpf)
         withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { tab = .dpf }
     }
 

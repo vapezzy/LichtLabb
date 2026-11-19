@@ -11,7 +11,30 @@ struct DPFView: View {
 
     private var r: DPFMonitor.Reading { monitor.reading }
 
+    /// Im Service-Tab eingebettet: ohne eigenen Hintergrund und eigenes Scrollen
+    var embedded = false
+
     var body: some View {
+        Group {
+            if embedded {
+                VStack(spacing: 22) {
+                    header
+                    content
+                }
+            } else {
+                standalone
+            }
+        }
+        .foregroundStyle(.white)
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: r.regenerating)
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: monitor.state)
+        .onAppear { monitor.viewAppeared() }
+        // Stecker wird verbunden, während die Seite offen ist → von Beispiel- auf Live-Daten umschalten
+        .onChange(of: session.isInitialized) { _ in monitor.start() }
+        .onDisappear { monitor.viewDisappeared() }
+    }
+
+    private var standalone: some View {
         ZStack(alignment: .top) {
             AmbientBackground(tint: r.regenerating ? Theme.fault : Theme.violet)
 
@@ -27,44 +50,39 @@ struct DPFView: View {
             .scrollIndicators(.hidden)
 
             if showsClose {
-            HStack {
-                Spacer()
-                Button {
-                    Haptics.tap()
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .heavy))
-                        .frame(width: 36, height: 36)
-                        .frosted(cornerRadius: 18)
+                HStack {
+                    Spacer()
+                    Button {
+                        Haptics.tap()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .heavy))
+                            .frame(width: 36, height: 36)
+                            .frosted(cornerRadius: 18)
+                    }
+                    .buttonStyle(PressableStyle())
                 }
-                .buttonStyle(PressableStyle())
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
             }
         }
-        .foregroundStyle(.white)
         .preferredColorScheme(.dark)
-        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: r.regenerating)
-        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: monitor.state)
-        .onAppear { monitor.viewAppeared() }
-        // Stecker wird verbunden, während die Seite offen ist → von Beispiel- auf Live-Daten umschalten
-        .onChange(of: session.isInitialized) { _ in monitor.start() }
-        .onDisappear { monitor.viewDisappeared() }
     }
 
     // MARK: - Kopf
 
     private var header: some View {
         VStack(spacing: 8) {
-            DPFLampIcon(size: 40)
-                .foregroundStyle(Theme.brandGradient)
-                .background(Glow(color: Theme.violet, opacity: 0.45).frame(width: 110, height: 110))
-                .padding(.top, showsClose ? 26 : 8)
-                .buildIn(0)
+            if !embedded {
+                DPFLampIcon(size: 40)
+                    .foregroundStyle(Theme.brandGradient)
+                    .background(Glow(color: Theme.violet, opacity: 0.45).frame(width: 110, height: 110))
+                    .padding(.top, showsClose ? 26 : 8)
+                    .buildIn(0)
+            }
             Text("Rußfilter")
-                .font(Theme.display(36))
+                .font(Theme.display(embedded ? 26 : 36))
                 .foregroundStyle(Theme.titleGradient)
             Text("Die Crew guckt dem Diesel in den Auspuff.")
                 .font(Theme.rounded(15, weight: .medium))

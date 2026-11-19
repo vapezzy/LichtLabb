@@ -28,9 +28,11 @@
 		900000000000000000000013 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* Platform.swift */; };
 		900000000000000000000014 /* RegenAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* RegenAlerts.swift */; };
 		900000000000000000000015 /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* RideReaderApp.swift */; };
-		900000000000000000000016 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000016 /* SettingsTab.swift */; };
-		900000000000000000000017 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* Theme.swift */; };
-		900000000000000000000018 /* ThemeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000018 /* ThemeStore.swift */; };
+		900000000000000000000016 /* ServiceRoutines.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000016 /* ServiceRoutines.swift */; };
+		900000000000000000000017 /* ServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* ServiceView.swift */; };
+		900000000000000000000018 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000018 /* SettingsTab.swift */; };
+		900000000000000000000019 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* Theme.swift */; };
+		90000000000000000000001A /* ThemeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001A /* ThemeStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,9 +58,11 @@
 		F00000000000000000000013 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
 		F00000000000000000000014 /* RegenAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegenAlerts.swift; sourceTree = "<group>"; };
 		F00000000000000000000015 /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
-		F00000000000000000000016 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
-		F00000000000000000000017 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		F00000000000000000000018 /* ThemeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000016 /* ServiceRoutines.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceRoutines.swift; sourceTree = "<group>"; };
+		F00000000000000000000017 /* ServiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceView.swift; sourceTree = "<group>"; };
+		F00000000000000000000018 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		F00000000000000000000019 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F0000000000000000000001A /* ThemeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,9 +108,11 @@
 				F00000000000000000000013 /* Platform.swift */,
 				F00000000000000000000014 /* RegenAlerts.swift */,
 				F00000000000000000000015 /* RideReaderApp.swift */,
-				F00000000000000000000016 /* SettingsTab.swift */,
-				F00000000000000000000017 /* Theme.swift */,
-				F00000000000000000000018 /* ThemeStore.swift */,
+				F00000000000000000000016 /* ServiceRoutines.swift */,
+				F00000000000000000000017 /* ServiceView.swift */,
+				F00000000000000000000018 /* SettingsTab.swift */,
+				F00000000000000000000019 /* Theme.swift */,
+				F0000000000000000000001A /* ThemeStore.swift */,
 			);
 			path = RideReader;
 			sourceTree = "<group>";
@@ -208,9 +214,11 @@
 				900000000000000000000013 /* Platform.swift in Sources */,
 				900000000000000000000014 /* RegenAlerts.swift in Sources */,
 				900000000000000000000015 /* RideReaderApp.swift in Sources */,
-				900000000000000000000016 /* SettingsTab.swift in Sources */,
-				900000000000000000000017 /* Theme.swift in Sources */,
-				900000000000000000000018 /* ThemeStore.swift in Sources */,
+				900000000000000000000016 /* ServiceRoutines.swift in Sources */,
+				900000000000000000000017 /* ServiceView.swift in Sources */,
+				900000000000000000000018 /* SettingsTab.swift in Sources */,
+				900000000000000000000019 /* Theme.swift in Sources */,
+				90000000000000000000001A /* ThemeStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

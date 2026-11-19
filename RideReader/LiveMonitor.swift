@@ -38,6 +38,9 @@ final class LiveMonitor: ObservableObject {
         Signal(pid: 0x1F, title: "Seit Motorstart", unit: "min", icon: "timer", digits: 0, fast: false),
         Signal(pid: 0x31, title: "km seit Fehler löschen", unit: "km", icon: "eraser", digits: 0, fast: false),
         Signal(pid: 0xA6, title: "Kilometerstand", unit: "km", icon: "road.lanes", digits: 1, fast: false),
+        Signal(pid: 0x2C, title: "AGR Sollwert", unit: "%", icon: "arrow.triangle.2.circlepath", digits: 0, fast: true),
+        Signal(pid: 0x2D, title: "AGR Abweichung", unit: "%", icon: "plusminus", digits: 0, fast: true),
+        Signal(pid: 0x6B, title: "AGR Temperatur", unit: "°C", icon: "thermometer.sun", digits: 0, fast: false),
     ]
 
     /// Umrechnung der Datenbytes nach `41 <PID>` in den angezeigten Wert.
@@ -57,6 +60,11 @@ final class LiveMonitor: ObservableObject {
         case 0x33: return a().map { $0 * 10 }                  // kPa → mbar
         case 0x42: return ab().map { $0 / 1000 }
         case 0x5E: return ab().map { $0 / 20 }
+        case 0x2C: return a().map { $0 * 100 / 255 }          // Sollwert AGR
+        case 0x2D: return a().map { ($0 - 128) * 100 / 128 }    // Abweichung Ist/Soll
+        case 0x6B:                                              // AGR-Temperatur, Sensor A (Bit0 im Unterstützungsbyte)
+            guard d.count >= 2, d[0] & 0x01 != 0 else { return nil }
+            return Double(d[1]) - 40
         case 0xA6:
             guard d.count >= 4 else { return nil }
             let raw = UInt32(d[0]) << 24 | UInt32(d[1]) << 16 | UInt32(d[2]) << 8 | UInt32(d[3])
@@ -323,6 +331,7 @@ final class LiveMonitor: ObservableObject {
                     0x0C: rpm, 0x0D: 0, 0x04: 21 + 3 * sin(t), 0x11: 0, 0x0B: 1.02, 0x10: 7.8 + 0.4 * sin(t * 2),
                     0x23: 300 + 15 * sin(t), 0x5E: 0.9, 0x05: 88, 0x5C: 96, 0x0F: 24, 0x46: 9, 0x2F: 58,
                     0x33: 1012, 0x42: 14.1, 0x1F: 12, 0x31: 1840,
+                    0x2C: 34 + 6 * sin(t * 0.7), 0x2D: -3 + 2 * sin(t * 1.1), 0x6B: 142 + 8 * sin(t * 0.4),
                 ]
                 self.voltage = 14.05 + 0.05 * sin(t * 0.8)
                 self.readiness = Self.decodeReadiness([0x00, 0x0F, 0xEB, 0x40])
