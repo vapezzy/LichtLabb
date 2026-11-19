@@ -9,6 +9,7 @@ struct RideReaderApp: App {
     @StateObject private var dpf: DPFMonitor
     @StateObject private var live: LiveMonitor
     @StateObject private var history = FaultHistory()
+    @StateObject private var perf: PerformanceMonitor
 
     init() {
         let ble = BLEManager(startBluetooth: LaunchOptions.shot == nil)
@@ -17,7 +18,10 @@ struct RideReaderApp: App {
         _session = StateObject(wrappedValue: session)
         let scanner = FaultScanner(session: session)
         let dpf = DPFMonitor(session: session)
-        dpf.pauseWhen = { [weak scanner] in scanner?.isBusy ?? false }
+        let perf = PerformanceMonitor(session: session)
+        _perf = StateObject(wrappedValue: perf)
+        // DPF-Überwachung pausiert während Kontrolle und 0–100-Messung
+        dpf.pauseWhen = { [weak scanner, weak perf] in (scanner?.isBusy ?? false) || (perf?.isActive ?? false) }
         dpf.onRegenChange = { RegenAlerts.regenChanged($0) }
         dpf.onAlarmToggle = { on in if on { RegenAlerts.requestPermission() } }
         RegenAlerts.setUp()
@@ -35,6 +39,7 @@ struct RideReaderApp: App {
                 .environmentObject(dpf)
                 .environmentObject(live)
                 .environmentObject(history)
+                .environmentObject(perf)
                 .preferredColorScheme(.dark)
         }
     }

@@ -4,6 +4,8 @@ import SwiftUI
 struct LiveView: View {
     @EnvironmentObject private var monitor: LiveMonitor
     @EnvironmentObject private var session: ELMSession
+    @EnvironmentObject private var perf: PerformanceMonitor
+    @State private var showPerformance = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -12,6 +14,7 @@ struct LiveView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     header
+                    performanceCard.buildIn(1)
                     switch monitor.state {
                     case .failed(let message):
                         InfoCard(icon: "exclamationmark.triangle.fill", color: Theme.fault, title: "Keine Live-Daten", text: message)
@@ -50,6 +53,11 @@ struct LiveView: View {
         .onAppear { monitor.start() }
         .onDisappear { monitor.stop() }
         .onChange(of: session.isInitialized) { _ in monitor.start() }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showPerformance) { PerformanceView() }
+        #else
+        .sheet(isPresented: $showPerformance) { PerformanceView() }
+        #endif
     }
 
     // MARK: - Kopf
@@ -79,6 +87,41 @@ struct LiveView: View {
         }
         .frame(maxWidth: .infinity)
         .buildIn(0)
+    }
+
+    // MARK: - 0–100
+
+    private var performanceCard: some View {
+        Button {
+            Haptics.tap()
+            showPerformance = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(LinearGradient(colors: [Theme.magenta.opacity(0.35), Theme.violet.opacity(0.25)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                    Image(systemName: "flag.checkered")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.brandGradient)
+                }
+                .frame(width: 48, height: 48)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("0–100 Messung")
+                        .font(Theme.rounded(17, weight: .bold))
+                    Text(perf.best?.total.map { String(format: "Bestzeit %.2f s", $0) } ?? "Wie schnell ist die Karre wirklich?")
+                        .font(Theme.rounded(13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card(tint: Theme.magenta)
+        }
+        .buttonStyle(PressableStyle())
     }
 
     // MARK: - Batterie

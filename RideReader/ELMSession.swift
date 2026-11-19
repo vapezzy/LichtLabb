@@ -83,6 +83,7 @@ final class ELMSession: ObservableObject {
     private var engineAddressed = false
     /// Zwischenspeicher der unterstützten Messwerte (gilt bis zur nächsten Initialisierung)
     private var pidCache: Set<UInt8>?
+    private var singleResponseUnsupported = false
 
     convenience init(ble: BLEManager) {
         self.init(transport: ble)
@@ -294,11 +295,20 @@ final class ELMSession: ObservableObject {
 
     /// Liest einen genormten Messwert (OBD-II Modus 01) direkt vom Motorsteuergerät.
     /// Liefert die Datenbytes nach `41 <PID>` oder nil, wenn das Steuergerät den Wert nicht kennt.
-    func readPID(_ pid: UInt8, quiet: Bool = true) async throws -> [UInt8]? {
+    func readPID(_ pid: UInt8, quiet: Bool = true, fast: Bool = false) async throws -> [UInt8]? {
         await acquire()
         defer { release() }
         try await useEngineAddressing(quiet: quiet)
-        let lines = try await command(String(format: "01%02X", pid), timeout: 2, quiet: quiet)
+        // „fast“: Anhang „1“ = nur eine Antwort erwarten – der Adapter wartet dann nicht auf weitere Steuergeräte
+        // (ELM327 ab v1.3). Kennt der Adapter das nicht, einmalig auf normale Abfrage zurückfallen.
+        let useSingle = fast && !singleResponseUnsupported
+        let lines: [String]
+        do {
+            lines = try await command(String(format: "01%02X", pid) + (useSingle ? "1" : ""), timeout: 2, quiet: quiet)
+        } catch SessionError.adapter(let message) where useSingle && message == "?" {
+            singleResponseUnsupported = true
+            lines = try await command(String(format: "01%02X", pid), timeout: 2, quiet: quiet)
+        }
         if lines.contains(where: { $0.contains("NO DATA") }) { return nil }
         for message in ISOTP.messages(from: lines) where message.count >= 2 && message[0] == 0x41 && message[1] == pid {
             return Array(message.dropFirst(2))

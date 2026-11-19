@@ -233,6 +233,11 @@ func run() async {
     } else { check(false, "Readiness dekodiert") }
     check(LiveMonitor.decodeReadiness([0x81, 0x07, 0x00, 0x00])?.mil == true, "MIL an erkannt")
 
+    print("0–100 Interpolation")
+    let c = PerformanceMonitor.crossing(t0: 5.0, v0: 96, t1: 5.2, v1: 104, target: 100)
+    check(c.map { abs($0 - 5.1) < 0.0001 } == true, "96→104 km/h in 0,2 s → 100 bei 5,10 s")
+    check(PerformanceMonitor.crossing(t0: 1, v0: 40, t1: 1.1, v1: 45, target: 50) == nil, "50 noch nicht erreicht")
+
     print(failures == 0 ? "\nAlle Tests bestanden." : "\n\(failures) Test(s) fehlgeschlagen.")
     exit(failures == 0 ? 0 : 1)
 }

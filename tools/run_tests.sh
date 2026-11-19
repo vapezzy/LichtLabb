@@ -5,6 +5,6 @@ cd "$(dirname "$0")/.."
 OUT="${TMPDIR:-/tmp}/ridereader-tests"
 swiftc -sdk "$(xcrun --show-sdk-path)" -target "$(uname -m)-apple-macos13.3" \
   RideReader/Hex.swift RideReader/BLEManager.swift RideReader/ELMSession.swift \
-  RideReader/FaultScanner.swift RideReader/FaultCatalog.swift RideReader/DPFMonitor.swift RideReader/LiveMonitor.swift \
+  RideReader/FaultScanner.swift RideReader/FaultCatalog.swift RideReader/DPFMonitor.swift RideReader/LiveMonitor.swift RideReader/PerformanceMonitor.swift RideReader/Platform.swift \
   Tests/ELMSimulator.swift Tests/main.swift -o "$OUT"
 "$OUT"

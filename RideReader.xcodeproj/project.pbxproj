@@ -23,11 +23,13 @@
 		90000000000000000000000E /* LiveMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000E /* LiveMonitor.swift */; };
 		90000000000000000000000F /* LiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000000F /* LiveView.swift */; };
 		900000000000000000000010 /* MechanicsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000010 /* MechanicsLoader.swift */; };
-		900000000000000000000011 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* Platform.swift */; };
-		900000000000000000000012 /* RegenAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* RegenAlerts.swift */; };
-		900000000000000000000013 /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* RideReaderApp.swift */; };
-		900000000000000000000014 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* SettingsTab.swift */; };
-		900000000000000000000015 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* Theme.swift */; };
+		900000000000000000000011 /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* PerformanceMonitor.swift */; };
+		900000000000000000000012 /* PerformanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* PerformanceView.swift */; };
+		900000000000000000000013 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* Platform.swift */; };
+		900000000000000000000014 /* RegenAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000014 /* RegenAlerts.swift */; };
+		900000000000000000000015 /* RideReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* RideReaderApp.swift */; };
+		900000000000000000000016 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000016 /* SettingsTab.swift */; };
+		900000000000000000000017 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000017 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,11 +50,13 @@
 		F0000000000000000000000E /* LiveMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitor.swift; sourceTree = "<group>"; };
 		F0000000000000000000000F /* LiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveView.swift; sourceTree = "<group>"; };
 		F00000000000000000000010 /* MechanicsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicsLoader.swift; sourceTree = "<group>"; };
-		F00000000000000000000011 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
-		F00000000000000000000012 /* RegenAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegenAlerts.swift; sourceTree = "<group>"; };
-		F00000000000000000000013 /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
-		F00000000000000000000014 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
-		F00000000000000000000015 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
+		F00000000000000000000012 /* PerformanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceView.swift; sourceTree = "<group>"; };
+		F00000000000000000000013 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		F00000000000000000000014 /* RegenAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegenAlerts.swift; sourceTree = "<group>"; };
+		F00000000000000000000015 /* RideReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderApp.swift; sourceTree = "<group>"; };
+		F00000000000000000000016 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
+		F00000000000000000000017 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,11 +97,13 @@
 				F0000000000000000000000E /* LiveMonitor.swift */,
 				F0000000000000000000000F /* LiveView.swift */,
 				F00000000000000000000010 /* MechanicsLoader.swift */,
-				F00000000000000000000011 /* Platform.swift */,
-				F00000000000000000000012 /* RegenAlerts.swift */,
-				F00000000000000000000013 /* RideReaderApp.swift */,
-				F00000000000000000000014 /* SettingsTab.swift */,
-				F00000000000000000000015 /* Theme.swift */,
+				F00000000000000000000011 /* PerformanceMonitor.swift */,
+				F00000000000000000000012 /* PerformanceView.swift */,
+				F00000000000000000000013 /* Platform.swift */,
+				F00000000000000000000014 /* RegenAlerts.swift */,
+				F00000000000000000000015 /* RideReaderApp.swift */,
+				F00000000000000000000016 /* SettingsTab.swift */,
+				F00000000000000000000017 /* Theme.swift */,
 			);
 			path = RideReader;
 			sourceTree = "<group>";
@@ -194,11 +200,13 @@
 				90000000000000000000000E /* LiveMonitor.swift in Sources */,
 				90000000000000000000000F /* LiveView.swift in Sources */,
 				900000000000000000000010 /* MechanicsLoader.swift in Sources */,
-				900000000000000000000011 /* Platform.swift in Sources */,
-				900000000000000000000012 /* RegenAlerts.swift in Sources */,
-				900000000000000000000013 /* RideReaderApp.swift in Sources */,
-				900000000000000000000014 /* SettingsTab.swift in Sources */,
-				900000000000000000000015 /* Theme.swift in Sources */,
+				900000000000000000000011 /* PerformanceMonitor.swift in Sources */,
+				900000000000000000000012 /* PerformanceView.swift in Sources */,
+				900000000000000000000013 /* Platform.swift in Sources */,
+				900000000000000000000014 /* RegenAlerts.swift in Sources */,
+				900000000000000000000015 /* RideReaderApp.swift in Sources */,
+				900000000000000000000016 /* SettingsTab.swift in Sources */,
+				900000000000000000000017 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
