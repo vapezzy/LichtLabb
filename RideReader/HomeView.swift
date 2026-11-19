@@ -348,6 +348,24 @@ struct HomeView: View {
                         .foregroundStyle(.white.opacity(0.6))
                 }
             }
+            if let km = scanner.highestStoredMileage {
+                HStack(spacing: 10) {
+                    Image(systemName: "road.lanes")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Theme.brandGradient)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Zuletzt gespeichert bei \(km.formatted(.number.locale(Locale(identifier: "de_DE")))) km")
+                            .font(Theme.rounded(14, weight: .bold))
+                        Text("Höchster km-Stand im Fehlerspeicher. Liegt er deutlich über dem Tacho, stimmt etwas nicht.")
+                            .font(Theme.rounded(12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.6))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.white.opacity(0.06)))
+            }
             HStack(spacing: 8) {
                 if severe > 0 {
                     CountChip(count: severe, label: "schwerwiegend", color: Theme.severe)

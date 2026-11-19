@@ -7,6 +7,8 @@ struct FaultCode: Identifiable, Hashable {
     let code: String
     let status: UInt8
     var isOBD = false
+    /// km-Stand, den das Steuergerät beim (letzten) Auftreten gespeichert hat – aus den Umweltbedingungen
+    var mileage: Int?
 
     var isActive: Bool { status & 0x01 != 0 }
     var isPending: Bool { status & 0x04 != 0 }
@@ -274,6 +276,24 @@ final class FaultScanner: ObservableObject {
         }
         try? await session.setResponseTimeout(0x32)
 
+        // km-Stände aus den Umweltbedingungen der gefundenen Fehler (nur lesen)
+        if !Task.isCancelled {
+            currentStep = "Kilometerstände"
+            for r in results.indices where !results[r].faults.isEmpty {
+                for f in results[r].faults.indices {
+                    if Task.isCancelled { break }
+                    let address = results[r].address
+                    guard let dtc = Hex.bytes(results[r].faults[f].code), dtc.count == 3 else { continue }
+                    let request: [UInt8] = [0x19, 0x04] + dtc + [0xFF]
+                    let response = try? await session.uds(request, ecu: address, timeout: 4, quiet: true)
+                    if let response {
+                        let km = Self.mileage(fromSnapshot: response)
+                        results[r].faults[f].mileage = km
+                    }
+                }
+            }
+        }
+
         progress = 1
         currentStep = ""
         phase = .finished(Date())
@@ -321,6 +341,31 @@ final class FaultScanner: ObservableObject {
         phase = .idle
     }
 
+    /// Höchster km-Stand, den irgendein Steuergerät zu einem Fehler gespeichert hat.
+    var highestStoredMileage: Int? {
+        results.flatMap(\.faults).compactMap(\.mileage).max()
+    }
+
+    /// Liest den km-Stand aus der Antwort auf 19 04 (Umweltbedingungen eines Fehlers).
+    /// BMW legt den km-Stand als Kennung 0x1700 mit 3 Byte ab. Gibt es mehrere Datensätze (erstes/letztes Auftreten),
+    /// zählt der höchste Wert. Unplausible Werte werden verworfen.
+    nonisolated static func mileage(fromSnapshot r: [UInt8]) -> Int? {
+        // 59 04 <DTC 3 Byte> <Status> <Datensatz> <Anzahl> <Kennung …>
+        guard r.count >= 11, r[0] == 0x59, r[1] == 0x04 else { return nil }
+        var best: Int?
+        var i = 6
+        while i + 4 < r.count {
+            if r[i] == 0x17, r[i + 1] == 0x00 {
+                let km = Int(r[i + 2]) << 16 | Int(r[i + 3]) << 8 | Int(r[i + 4])
+                if km > 0, km < 2_000_000 { best = max(best ?? 0, km) }
+                i += 5
+            } else {
+                i += 1
+            }
+        }
+        return best
+    }
+
     /// Beispieldaten, um die Ansicht ohne Auto auszuprobieren.
     func loadDemo() {
         isDemo = true
@@ -329,18 +374,18 @@ final class FaultScanner: ObservableObject {
         vin = "WBA4A31070GXXXXXX"
         results = [
             ECUResult(address: 0x12, name: Self.name(for: 0x12), faults: [
-                FaultCode(code: "120308", status: 0x08),
-                FaultCode(code: "1B2A00", status: 0x09),
+                FaultCode(code: "120308", status: 0x08, mileage: 141_220),
+                FaultCode(code: "1B2A00", status: 0x09, mileage: 148_905),
             ]),
             ECUResult(address: 0x40, name: Self.name(for: 0x40), faults: [
-                FaultCode(code: "801C20", status: 0x04),
+                FaultCode(code: "801C20", status: 0x04, mileage: 97_310),
             ]),
             ECUResult(address: 0x60, name: Self.name(for: 0x60), faults: []),
             ECUResult(address: 0x72, name: Self.name(for: 0x72), faults: [
-                FaultCode(code: "A6A610", status: 0x08),
+                FaultCode(code: "A6A610", status: 0x08, mileage: 148_870),
             ]),
             ECUResult(address: 0x29, name: Self.name(for: 0x29), faults: [
-                FaultCode(code: "480A1C", status: 0x89),
+                FaultCode(code: "480A1C", status: 0x89, mileage: 148_911),
             ]),
         ]
         obdCodes = [FaultCode(code: "P2463", status: 0x08, isOBD: true),
@@ -358,6 +403,7 @@ final class FaultScanner: ObservableObject {
             lines.append(DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short))
         }
         if let vin { lines.append("FIN: \(vin)") }
+        if let km = highestStoredMileage { lines.append("Höchster km-Stand im Fehlerspeicher: \(km) km") }
         if let abortReason { lines.append("Scan abgebrochen: \(abortReason)") }
         lines.append("")
         for result in results {
@@ -369,7 +415,8 @@ final class FaultScanner: ObservableObject {
             } else {
                 for fault in result.faults {
                     let info = FaultCatalog.info(for: fault, ecu: result.address)
-                    lines.append("  \(fault.code)  [\(fault.statusText)]  \(info.severity.label): \(info.area)")
+                    let km = fault.mileage.map { "  bei \($0) km" } ?? ""
+                    lines.append("  \(fault.code)  [\(fault.statusText)]  \(info.severity.label): \(info.area)\(km)")
                 }
             }
         }

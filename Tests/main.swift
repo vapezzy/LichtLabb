@@ -217,6 +217,14 @@ func run() async {
     let catalyst = FaultCatalog.info(for: FaultCode(code: "P0420", status: 0x08, isOBD: true), ecu: nil)
     check(!catalyst.isDPF, "P0420 Katalysator → normaler Web-Knopf")
 
+    print("km-Stand aus Umweltbedingungen")
+    // 59 04 | DTC 801C20 | Status | Datensatz 01, 2 Kennungen: 1700 = 0x0245A0 (148.896 km), 1701 = Zeit
+    let snap: [UInt8] = [0x59, 0x04, 0x80, 0x1C, 0x20, 0x08, 0x01, 0x02, 0x17, 0x00, 0x02, 0x45, 0xA0,
+                         0x17, 0x01, 0x12, 0x34, 0x56, 0x78,
+                         0x02, 0x01, 0x17, 0x00, 0x02, 0x45, 0xB0]
+    check(FaultScanner.mileage(fromSnapshot: snap) == 148_912, "höchster Datensatz zählt (\(FaultScanner.mileage(fromSnapshot: snap) ?? -1))")
+    check(FaultScanner.mileage(fromSnapshot: [0x7F, 0x19, 0x31]) == nil, "Ablehnung → kein km-Stand")
+
     print(failures == 0 ? "\nAlle Tests bestanden." : "\n\(failures) Test(s) fehlgeschlagen.")
     exit(failures == 0 ? 0 : 1)
 }

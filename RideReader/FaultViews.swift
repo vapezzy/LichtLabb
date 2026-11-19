@@ -120,6 +120,16 @@ struct FaultCard: View {
                             .background(Capsule().fill(.white.opacity(part == "aktiv" || part == "Warnlampe" ? 0.16 : 0.07)))
                             .foregroundStyle(part == "aktiv" || part == "Warnlampe" ? color : .white.opacity(0.7))
                     }
+                    if let km = fault.mileage {
+                        Label("\(km.formatted(.number.locale(Locale(identifier: "de_DE")))) km", systemImage: "road.lanes")
+                            .font(Theme.rounded(11, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Theme.violet.opacity(0.22)))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 12, weight: .bold))
