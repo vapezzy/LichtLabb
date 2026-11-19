@@ -111,6 +111,7 @@ final class ThemeStore: ObservableObject {
         secondary = Self.loadColor("themeSecondary") ?? Color(red: 1.0, green: 0.75, blue: 0.2)
         customName = defaults.string(forKey: "themeName") ?? ""
         Palette.current = palette(for: choice)
+        WidgetBridge.themeChanged(edition: editionLabel)
     }
 
     /// Text unter dem Schriftzug auf „Zuhause“, z. B. „M Colours Edition“
@@ -162,6 +163,7 @@ final class ThemeStore: ObservableObject {
 
     private func apply() {
         Palette.current = palette(for: choice)
+        WidgetBridge.themeChanged(edition: editionLabel)
         withAnimation(.easeInOut(duration: 0.4)) { revision += 1 }
     }
 

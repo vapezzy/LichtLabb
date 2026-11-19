@@ -40,8 +40,14 @@ jobs:
           brew install ldid
           mkdir -p Payload
           cp -R build/Release-iphoneos/RideReader.app Payload/
-          # Pseudo-Signatur, TrollStore ersetzt sie bei der Installation
-          ldid -S Payload/RideReader.app/RideReader
+          # Pseudo-Signatur mit App-Gruppe (Datenaustausch App ↔ Widget); TrollStore übernimmt die Berechtigungen
+          ENT=RideReader/RideReader.entitlements
+          if [ -d Payload/RideReader.app/PlugIns/RideReaderWidgets.appex ]; then
+            ldid -S"$ENT" Payload/RideReader.app/PlugIns/RideReaderWidgets.appex/RideReaderWidgets
+          else
+            echo "::warning::Widget-Erweiterung fehlt im App-Paket"
+          fi
+          ldid -S"$ENT" Payload/RideReader.app/RideReader
           zip -qry RideReader.ipa Payload
 
       - uses: actions/upload-artifact@v4

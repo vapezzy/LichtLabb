@@ -60,6 +60,8 @@ final class DPFMonitor: ObservableObject {
     /// Wird bei Beginn (true) und Ende (false) einer echten Regeneration aufgerufen (Haptik, Mitteilung).
     var onRegenChange: (@MainActor (Bool) -> Void)?
     var onAlarmToggle: (@MainActor (Bool) -> Void)?
+    /// Neue echte Messwerte (für Widget und Live-Aktivität)
+    var onReading: (@MainActor (Reading) -> Void)?
     /// Pausieren, solange z. B. eine Kontrolle läuft (die soll nicht ausgebremst werden)
     var pauseWhen: @MainActor () -> Bool = { false }
     /// DPF-Tab ist gerade sichtbar
@@ -142,6 +144,7 @@ final class DPFMonitor: ObservableObject {
                 }
                 reading = next
                 lastUpdate = Date()
+                onReading?(next)
                 if next.regenerating != wasRegenerating, alarmEnabled {
                     onRegenChange?(next.regenerating)
                 }

@@ -34,10 +34,40 @@
 		900000000000000000000019 /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000019 /* SettingsTab.swift */; };
 		90000000000000000000001A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001A /* Theme.swift */; };
 		90000000000000000000001B /* ThemeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001B /* ThemeStore.swift */; };
+		90000000000000000000001C /* WidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001C /* WidgetBridge.swift */; };
+		90000000000000000000001D /* WidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001D /* WidgetShared.swift */; };
+		800000000000000000000001 /* RideReaderWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001E /* RideReaderWidgets.swift */; };
+		800000000000000000000002 /* WidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000001D /* WidgetShared.swift */; };
+		700000000000000000000003 /* RideReaderWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* RideReaderWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		700000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000004;
+			remoteInfo = RideReaderWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C00000000000000000000004 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				700000000000000000000003 /* RideReaderWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A00000000000000000000003 /* RideReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RideReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000005 /* RideReaderWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RideReaderWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00000000000000000000001 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
 		F00000000000000000000002 /* ConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleView.swift; sourceTree = "<group>"; };
 		F00000000000000000000003 /* DPFLamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DPFLamp.swift; sourceTree = "<group>"; };
@@ -65,10 +95,20 @@
 		F00000000000000000000019 /* SettingsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
 		F0000000000000000000001A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		F0000000000000000000001B /* ThemeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeStore.swift; sourceTree = "<group>"; };
+		F0000000000000000000001C /* WidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridge.swift; sourceTree = "<group>"; };
+		F0000000000000000000001D /* WidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetShared.swift; sourceTree = "<group>"; };
+		F0000000000000000000001E /* RideReaderWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideReaderWidgets.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C00000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000006 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -82,7 +122,9 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000002 /* RideReader */,
-				B00000000000000000000003 /* Products */,
+				B00000000000000000000003 /* Shared */,
+				B00000000000000000000004 /* RideReaderWidgets */,
+				B00000000000000000000005 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -116,14 +158,32 @@
 				F00000000000000000000019 /* SettingsTab.swift */,
 				F0000000000000000000001A /* Theme.swift */,
 				F0000000000000000000001B /* ThemeStore.swift */,
+				F0000000000000000000001C /* WidgetBridge.swift */,
 			);
 			path = RideReader;
 			sourceTree = "<group>";
 		};
-		B00000000000000000000003 /* Products */ = {
+		B00000000000000000000003 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				F0000000000000000000001D /* WidgetShared.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000004 /* RideReaderWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				F0000000000000000000001E /* RideReaderWidgets.swift */,
+			);
+			path = RideReaderWidgets;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000005 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000003 /* RideReader.app */,
+				A00000000000000000000005 /* RideReaderWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -138,15 +198,34 @@
 				C00000000000000000000001 /* Sources */,
 				C00000000000000000000002 /* Frameworks */,
 				C00000000000000000000003 /* Resources */,
+				C00000000000000000000004 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				700000000000000000000002 /* PBXTargetDependency */,
 			);
 			name = RideReader;
 			productName = RideReader;
 			productReference = A00000000000000000000003 /* RideReader.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000004 /* RideReaderWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D00000000000000000000003 /* Build configuration list for PBXNativeTarget "RideReaderWidgets" */;
+			buildPhases = (
+				C00000000000000000000005 /* Sources */,
+				C00000000000000000000006 /* Frameworks */,
+				C00000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RideReaderWidgets;
+			productName = RideReaderWidgets;
+			productReference = A00000000000000000000005 /* RideReaderWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -161,6 +240,9 @@
 					A00000000000000000000002 = {
 						CreatedOnToolsVersion = 15.2;
 					};
+					A00000000000000000000004 = {
+						CreatedOnToolsVersion = 15.2;
+					};
 				};
 			};
 			buildConfigurationList = D00000000000000000000001 /* Build configuration list for PBXProject "RideReader" */;
@@ -172,17 +254,25 @@
 				Base,
 			);
 			mainGroup = B00000000000000000000001;
-			productRefGroup = B00000000000000000000003 /* Products */;
+			productRefGroup = B00000000000000000000005 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				A00000000000000000000002 /* RideReader */,
+				A00000000000000000000004 /* RideReaderWidgets */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		C00000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -223,10 +313,29 @@
 				900000000000000000000019 /* SettingsTab.swift in Sources */,
 				90000000000000000000001A /* Theme.swift in Sources */,
 				90000000000000000000001B /* ThemeStore.swift in Sources */,
+				90000000000000000000001C /* WidgetBridge.swift in Sources */,
+				90000000000000000000001D /* WidgetShared.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				800000000000000000000001 /* RideReaderWidgets.swift in Sources */,
+				800000000000000000000002 /* WidgetShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		700000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000004 /* RideReaderWidgets */;
+			targetProxy = 700000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		E00000000000000000000001 /* Debug */ = {
@@ -280,6 +389,7 @@
 				INFOPLIST_FILE = RideReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = RideReader;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "RideReader verbindet sich per Bluetooth mit deinem OBD-Stecker.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
@@ -304,6 +414,7 @@
 				INFOPLIST_FILE = RideReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = RideReader;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "RideReader verbindet sich per Bluetooth mit deinem OBD-Stecker.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
@@ -311,6 +422,46 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = local.ridereader.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		E00000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RideReaderWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RideReader;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.ridereader.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E00000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RideReaderWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RideReader;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = local.ridereader.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -334,6 +485,15 @@
 			buildConfigurations = (
 				E00000000000000000000003 /* Debug */,
 				E00000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D00000000000000000000003 /* Build configuration list for PBXNativeTarget "RideReaderWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E00000000000000000000005 /* Debug */,
+				E00000000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

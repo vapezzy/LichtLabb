@@ -147,6 +147,8 @@ final class LiveMonitor: ObservableObject {
     private let session: ELMSession
     private var task: Task<Void, Never>?
     private var testTask: Task<Void, Never>?
+    /// Echte Batteriespannung gemessen (für das Widget)
+    var onVoltage: (@MainActor (Double) -> Void)?
 
     init(session: ELMSession) {
         self.session = session
@@ -200,7 +202,10 @@ final class LiveMonitor: ObservableObject {
                         next[signal.pid] = value
                     }
                 }
-                if round % 2 == 0, let v = try await session.readVoltage() { voltage = v }
+                if round % 2 == 0, let v = try await session.readVoltage() {
+                    voltage = v
+                    onVoltage?(v)
+                }
                 values = next
                 round += 1
                 try? await Task.sleep(nanoseconds: 150_000_000)

@@ -96,6 +96,7 @@ struct HomeView: View {
             if case .finished = phase {
                 scanner.totalFaults > 0 ? Haptics.warning() : Haptics.confirm()
                 history.record(scanner)
+                WidgetBridge.scanFinished(scanner)
             }
         }
     }

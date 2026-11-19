@@ -28,10 +28,13 @@ struct RideReaderApp: App {
         dpf.pauseWhen = { [weak scanner, weak perf] in (scanner?.isBusy ?? false) || (perf?.isActive ?? false) }
         dpf.onRegenChange = { RegenAlerts.regenChanged($0) }
         dpf.onAlarmToggle = { on in if on { RegenAlerts.requestPermission() } }
+        dpf.onReading = { WidgetBridge.dpf($0) }
         RegenAlerts.setUp()
         _scanner = StateObject(wrappedValue: scanner)
         _dpf = StateObject(wrappedValue: dpf)
-        _live = StateObject(wrappedValue: LiveMonitor(session: session))
+        let live = LiveMonitor(session: session)
+        live.onVoltage = { WidgetBridge.voltage($0) }
+        _live = StateObject(wrappedValue: live)
     }
 
     var body: some Scene {
